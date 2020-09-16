@@ -1,0 +1,13 @@
+
+main() {
+    x: s8;
+    y: u16;
+    z: f32;
+    x = 3;
+    y = 5;
+    z = x + y;
+    if z == 8 {
+        return 0;
+    }
+    return 1;
+}

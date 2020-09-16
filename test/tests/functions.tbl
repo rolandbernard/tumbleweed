@@ -1,0 +1,18 @@
+
+add(a: s32, b: s32) s32 {
+    return a + b;
+}
+
+addmul(a: s32, b: s32, c: s32) s32 {
+    return add(a, b) * c;
+}
+
+main() {
+    if add(5, 3) == 8 {
+        if addmul(2, 3, 5) == 25 {
+            return 0
+        }
+        return 2;
+    }
+    return 1;
+}

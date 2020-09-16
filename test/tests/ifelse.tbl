@@ -1,0 +1,16 @@
+
+main() {
+    if 1 {
+        if 0 {
+            return 2;
+        } else if 2 {
+            if 0 {
+                return 4;
+            } else {
+                return 0; 
+            }
+        }
+        return 3;
+    }
+    return 1;
+}
