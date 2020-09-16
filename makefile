@@ -5,9 +5,10 @@ IDIR=./src
 SDIR=./src
 
 CC=gcc
+LINK=g++
 LLVMCONF=llvm-config
 CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -O0 -g -Wall -fsanitize=address,undefined
-LIBS=`$(LLVMCONF) --libs --link-static`
+LIBS=`$(LLVMCONF) --ldflags --libs --link-static` -lpthread -lncurses
 
 _SRC=$(wildcard $(SDIR)/*/*.c) $(wildcard $(SDIR)/*.c)
 OBJ=$(patsubst $(SDIR)/%.c,$(ODIR)/%.o,$(_SRC))
@@ -26,7 +27,7 @@ install: all
 
 $(BDIR)/tumble: $(OBJ)
 	mkdir -p `dirname $@`
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	$(LINK) $(CFLAGS) -o $@ $^ $(LIBS)
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	mkdir -p `dirname $@`
