@@ -7,7 +7,7 @@ SDIR=./src
 CC=gcc
 LLVMCONF=llvm-config
 CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -O0 -g -Wall -fsanitize=address,undefined
-LIBS=`$(LLVMCONF) --libs --link-static` -lpthread
+LIBS=`$(LLVMCONF) --libs --link-static`
 
 _SRC=$(wildcard $(SDIR)/*/*.c) $(wildcard $(SDIR)/*.c)
 OBJ=$(patsubst $(SDIR)/%.c,$(ODIR)/%.o,$(_SRC))
