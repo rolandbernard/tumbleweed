@@ -6,8 +6,10 @@
 #include "parser/ast.h"
 #include "driver/args.h"
 #include "driver/error.h"
-#include "common/hashtable.h"
+#include "codegen/symbols.h"
 
-LLVMValueRef generateCastFromTo(LLVMValueRef value, LLVMTypeRef dest, LLVMValueRef function, LLVMBuilderRef builder, Args* args, HashTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateCastFromTo(LLVMValueRef value, LLVMTypeRef dest, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
+LLVMValueRef generateConstCastFromTo(LLVMValueRef value, LLVMTypeRef dest, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 #endif

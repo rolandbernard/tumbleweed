@@ -814,7 +814,7 @@ static Ast* parseExpression(Scanner* scanner, ErrorContext* error_context) { ret
 
 static Ast* parseGlobalFunction(Scanner* scanner, ErrorContext* error_context) {
     if ((test(scanner, 0, TOKEN_IDENTIFIER) && test(scanner, 1, TOKEN_ROUND_OPEN)) ||
-        (test(scanner, 1, TOKEN_EXTERN) && test(scanner, 1, TOKEN_IDENTIFIER) && test(scanner, 2, TOKEN_ROUND_OPEN))) {
+        (test(scanner, 0, TOKEN_EXTERN) && test(scanner, 1, TOKEN_IDENTIFIER) && test(scanner, 2, TOKEN_ROUND_OPEN))) {
         Token first;
         Token last;
         Ast* return_type = NULL;

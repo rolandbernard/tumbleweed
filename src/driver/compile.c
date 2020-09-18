@@ -31,8 +31,10 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         File* file = &file_set->files[i];
         if(file != NULL && file != PARSE_ERROR) {
             LLVMModuleRef module = generateModuleFromAst(file->ast, file, args, error_context);
-            LLVMPrintModuleToFile(module, "test.ll", NULL);
-            LLVMDisposeModule(module);
+            if(module != NULL) {
+                LLVMPrintModuleToFile(module, "test.ll", NULL);
+                LLVMDisposeModule(module);
+            }
         }
     }
     deinitCodegen();
