@@ -7,7 +7,7 @@ passed_count=0
 failed_count=0
 
 function runTest {
-    if [ ${1: -4} == .tbl ]
+    if [ ${1: -7} == .tumble ]
     then
         for i in $(seq 1 $2)
         do
