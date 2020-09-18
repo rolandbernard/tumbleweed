@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <llvm-c/Core.h>
 
 #include "driver/file.h"
 #include "driver/error.h"
