@@ -10,6 +10,8 @@ typedef struct {
     const char* name;
     Ast* ast;
     LLVMValueRef llvm_value;
+    // Only used for functions
+    LLVMValueRef llvm_return;
 } Symbol;
 
 typedef struct {

@@ -126,7 +126,7 @@ typedef struct {
 typedef struct {
     AST_BASE
     Ast* condition;
-    AstCodeBlock* code_block;
+    Ast* code_block;
 } AstForLoop;
 
 typedef struct {

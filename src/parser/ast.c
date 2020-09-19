@@ -95,7 +95,7 @@ static void freeAstForLoop(AstForLoop* ast) {
     if (ast != NULL) {
         freeAst(ast->condition);
         ast->condition = NULL;
-        freeAstCodeBlock(ast->code_block);
+        freeAst(ast->code_block);
         ast->code_block = NULL;
         free(ast);
     }

@@ -10,26 +10,26 @@
 
 bool generateRoot(AstRoot* ast, LLVMModuleRef module, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueVariable(AstVariableDefinition* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueIfElse(AstIfElse* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueForLoop(AstForLoop* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueReturn(AstForLoop* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueCodeBlock(AstCodeBlock* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueCodeBlock(AstCodeBlock* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueIntegerLiteral(AstIntegerLiteral* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueIntegerLiteral(AstIntegerLiteral* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueCall(AstCall* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueIndex(AstIndex* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateValueInFunction(Ast* ast, LLVMValueRef function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 #endif

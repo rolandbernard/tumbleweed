@@ -22,6 +22,9 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         if (path != NULL && getFile(file_set, path) == NULL) {
             File* file = addFile(file_set, path, args->input_files[i]);
             file->ast = parseFile(file, error_context);
+            if(file->ast == PARSE_ERROR) {
+                file->ast = NULL;
+            }
         } else if (path == NULL) {
             addErrorf(error_context, NOPOS, ERROR, "%s: File can not be found", args->input_files[i]);
         }
@@ -29,7 +32,7 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
     }
     for (int i = 0; i < file_set->file_count; i++) {
         File* file = &file_set->files[i];
-        if(file != NULL && file != PARSE_ERROR) {
+        if(file->ast != NULL) {
             LLVMModuleRef module = generateModuleFromAst(file->ast, file, args, error_context);
             if(module != NULL) {
                 LLVMPrintModuleToFile(module, "test.ll", NULL);

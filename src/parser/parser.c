@@ -81,10 +81,10 @@ static Ast* parseFor(Scanner* scanner, ErrorContext* error_context) {
     Token first;
     if (consume(scanner, TOKEN_FOR, &first)) {
         Ast* condition = NULL;
-        AstCodeBlock* body = NULL;
-        condition = parseStatment(scanner, error_context);
+        Ast* body = NULL;
+        condition = parseExpression(scanner, error_context);
         if (condition != PARSE_ERROR) {
-            body = parseCodeBlock(scanner, error_context);
+            body = parseStatment(scanner, error_context);
             if (body != PARSE_ERROR) {
                 AstForLoop* ret = (AstForLoop*)malloc(sizeof(AstForLoop));
                 ret->type = AST_FOR_LOOP;
@@ -107,16 +107,13 @@ static Ast* parseDirective(Scanner* scanner, ErrorContext* error_context) {
     Token first;
     if (consume(scanner, TOKEN_RETURN, &first)) {
         Ast* value = parseExpression(scanner, error_context);
-        if (value == NULL || value == PARSE_ERROR) {
-            if (value == NULL) {
-                addError(error_context, "Expected an expression", getCurrentScannerPosition(scanner), ERROR);
-            }
+        if (value == PARSE_ERROR) {
             return PARSE_ERROR;
         }
         AstUnaryOperation* ret = (AstUnaryOperation*)malloc(sizeof(AstUnaryOperation));
         ret->type = AST_RETURN;
         ret->start = first.start;
-        ret->end = value->end;
+        ret->end = value == NULL ? first.end : value->end;
         ret->operand = value;
         return (Ast*)ret;
     }

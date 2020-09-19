@@ -32,7 +32,7 @@ void freeSymbolTable(SymbolTable* symbols) {
 void appendScope(SymbolTable* symbols) {
     if(symbols->scope_capacity == symbols->scope_count) {
         symbols->scope_capacity = symbols->scope_capacity == 0 ? 4 : 2 * symbols->scope_capacity;
-        symbols->scopes = (HashTable*)realloc(symbols->scopes, symbols->scope_capacity * sizeof(HashTable*));
+        symbols->scopes = (HashTable*)realloc(symbols->scopes, symbols->scope_capacity * sizeof(HashTable));
     }
     initHashTable(&symbols->scopes[symbols->scope_count]);
     symbols->scope_count++;

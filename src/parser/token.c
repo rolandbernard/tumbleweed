@@ -114,7 +114,7 @@ int determineToken(const char* from, TokenType* type) {
         *type = TOKEN_IDENTIFIER;
         return len;
     } else if ((from[0] >= '0' && from[0] <= '9') || (from[0] == '.' && (from[1] >= '0' && from[1] <= '9'))) {
-        if (from[1] == 'b') {
+        if (from[0] == '0' && from[1] == 'b') {
             int len = 2;
             while (from[len] == '0' || from[len] == '1' || from[len] == '_') {
                 len++;
@@ -122,7 +122,7 @@ int determineToken(const char* from, TokenType* type) {
             *type = TOKEN_INT_CONST;
             return len;
         }
-        if (from[1] == 'o') {
+        if (from[0] == '0' && from[1] == 'o') {
             int len = 2;
             while ((from[len] >= '0' && from[len] <= '7') || from[len] == '_') {
                 len++;
@@ -130,7 +130,7 @@ int determineToken(const char* from, TokenType* type) {
             *type = TOKEN_INT_CONST;
             return len;
         }
-        if (from[1] == 'h') {
+        if (from[0] == '0' && from[1] == 'h') {
             int len = 2;
             while (isHexChar(from[len]) || from[len] == '_') {
                 len++;
