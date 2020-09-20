@@ -469,7 +469,7 @@ static Ast* parseExpressionLevelUnary(Scanner* scanner, ErrorContext* error_cont
         } else if (consume(scanner, TOKEN_TILDE, &first) || accept(scanner, TOKEN_EXCL)) {
             type = AST_NOT;
         } else if (consume(scanner, TOKEN_AND, &first)) {
-            type = AST_DEREFERENCE;
+             type = AST_DEREFERENCE;
         }
         Ast* next = parseExpressionLevelUnary(scanner, error_context);
         if (next == NULL && type == AST_REFERENCE) {

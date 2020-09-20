@@ -62,7 +62,7 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
             LLVMBasicBlockRef exit = LLVMAppendBasicBlock(symbol->llvm_value, "");
             LLVMPositionBuilderAtEnd(builder, entry);
             if(ast->return_type != NULL) {
-                symbol->llvm_return = LLVMBuildAlloca(builder, LLVMGetReturnType(LLVMTypeOf(symbol->llvm_value)), "");
+                symbol->llvm_return = LLVMBuildAlloca(builder, LLVMGetReturnType(LLVMGetElementType(LLVMTypeOf(symbol->llvm_value))), "");
             }
             LLVMPositionBuilderAtEnd(builder, block);
             bool ret = generateValueCodeBlock(ast->body, symbol, builder, args, symbols, error_context) != NULL;
@@ -74,7 +74,8 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
             LLVMBuildBr(builder, block);
             LLVMPositionBuilderAtEnd(builder, exit);
             if(ast->return_type != NULL) {
-                LLVMBuildRet(builder, symbol->llvm_return);
+                LLVMValueRef ret = LLVMBuildLoad2(builder, LLVMGetReturnType(LLVMGetElementType(LLVMTypeOf(symbol->llvm_value))), symbol->llvm_return, "");
+                LLVMBuildRet(builder, ret);
             } else {
                 LLVMBuildRetVoid(builder);
             }
@@ -135,7 +136,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LL
             if (variable_type == NULL) {
                 error = true;
             } else if (ast->initial_value != NULL) {
-                value = generateConstCastFromTo(value, variable_type, args, symbols, error_context);
+                value = generateConstCastFromTo(ast->variable_type, value, variable_type, args, symbols, error_context);
                 if(value == NULL) {
                     error = true;
                 }
@@ -202,17 +203,21 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
     LLVMValueRef value;
     if (ast->initial_value != NULL) {
         if (ast->is_extern) {
-            addError(error_context, "Extern values can't be initialized", ast->start, ERROR);
+            addError(error_context, "Extern variables can't be inside functions", ast->start, ERROR);
         } else {
             value = generateValueInFunction(ast->initial_value, function, builder, args, symbols, error_context);
             if (value == NULL) {
                 error = true;
+            } else {
+                value = generateExtractFromVariable(value, function, builder, args, symbols, error_context);
             }
         }
     }
     LLVMTypeRef variable_type;
     if (ast->variable_type == NULL) {
-        variable_type = LLVMTypeOf(value);
+        if(value != NULL) {
+            variable_type = LLVMTypeOf(value);
+        }
     } else {
         if (ast->variable_type->type == AST_ARRAY) {
             if (ast->initial_value != NULL) {
@@ -224,11 +229,11 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             if (variable_type == NULL) {
                 error = true;
             } else {
-                LLVMValueRef size = generateConst(ast->initial_value, args, symbols, error_context);
+                LLVMValueRef size = generateConst(ast_array->lhs, args, symbols, error_context);
                 if (size == NULL) {
                     error = true;
                 } else {
-                    if (!(LLVMGetTypeKind(LLVMTypeOf(size)) != LLVMIntegerTypeKind)) {
+                    if (LLVMGetTypeKind(LLVMTypeOf(size)) != LLVMIntegerTypeKind) {
                         addError(error_context, "The Array size must be an integer", ast_array->lhs->start, ERROR);
                         error = true;
                     } else {
@@ -247,7 +252,7 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             if (variable_type == NULL) {
                 error = true;
             } else if (ast->initial_value != NULL) {
-                value = generateCastFromTo(value, variable_type, function, builder, args, symbols, error_context);
+                value = generateCastFromTo(ast->variable_type, value, variable_type, function, builder, args, symbols, error_context);
                 if(value == NULL) {
                     error = true;
                 }
@@ -289,6 +294,7 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
     if (condition == NULL) {
         error = true;
     } else {
+        condition = generateExtractFromVariable(condition, function, builder, args, symbols, error_context);
         LLVMTypeRef condition_type = LLVMTypeOf(condition);
         switch (LLVMGetTypeKind(condition_type)) {
         case LLVMIntegerTypeKind:
@@ -363,6 +369,7 @@ LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilder
     if (condition == NULL) {
         error = true;
     } else {
+        condition = generateExtractFromVariable(condition, function, builder, args, symbols, error_context);
         LLVMTypeRef condition_type = LLVMTypeOf(condition);
         switch (LLVMGetTypeKind(condition_type)) {
         case LLVMIntegerTypeKind:
@@ -410,7 +417,11 @@ LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMB
         } else {
             LLVMValueRef value = generateValueInFunction(ast->operand, function, builder, args, symbols, error_context);
             if(value != NULL) {
-                LLVMBuildStore(builder, value, function->llvm_return);
+                value = generateExtractFromVariable(value, function, builder, args, symbols, error_context);
+                value = generateCastFromTo(ast->operand, value, LLVMGetElementType(LLVMTypeOf(function->llvm_return)), function, builder, args, symbols, error_context);
+                if(value != NULL) {
+                    LLVMBuildStore(builder, value, function->llvm_return);
+                }
             }
             LLVMBasicBlockRef exit = LLVMGetLastBasicBlock(function->llvm_value);
             LLVMBuildBr(builder, exit);
@@ -479,11 +490,7 @@ LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* functio
         addErrorf(error_context, ast->start, ERROR, "Undefined symbol '%s'", ast->name);
         return NULL;
     } else {
-        if(symbol->ast->type == AST_VARIABLE_DEFINITION) {
-            return LLVMBuildLoad2(builder, LLVMGetElementType(LLVMTypeOf(symbol->llvm_value)), symbol->llvm_value, "");
-        } else {
-            return symbol->llvm_value;
-        }
+        return symbol->llvm_value;
     }
 }
 
@@ -492,17 +499,20 @@ LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMBuilderRef bu
     LLVMValueRef func = generateValueInFunction(ast->to_call, function, builder, args, symbols, error_context);
     if(func == NULL) {
         error = true;
-    }
-    if(!LLVMIsAFunction(func) &&
-        !(LLVMGetTypeKind(LLVMTypeOf(func)) == LLVMPointerTypeKind && LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(func))) == LLVMFunctionTypeKind)) {
-        addError(error_context, "Only functions can be called", ast->to_call->start, ERROR);
-        error = true;
+    } else {
+        func = generateExtractFromVariable(func, function, builder, args, symbols, error_context);
+        if (LLVMGetTypeKind(LLVMTypeOf(func)) != LLVMPointerTypeKind || LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(func))) != LLVMFunctionTypeKind) {
+            addError(error_context, "Only functions can be called", ast->to_call->start, ERROR);
+            error = true;
+        }
     }
     LLVMValueRef* params = (LLVMValueRef*)malloc(sizeof(LLVMValueRef) * ast->parameter_count);
     for(int i = 0; i < ast->parameter_count; i++) {
         params[i] = generateValueInFunction(ast->parameters[i], function, builder, args, symbols, error_context);
         if(params[i] == NULL) {
             error = true;
+        } else {
+            params[i] = generateExtractFromVariable(params[i], function, builder, args, symbols, error_context);
         }
     }
     if(!error) {
@@ -510,7 +520,7 @@ LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMBuilderRef bu
             LLVMTypeRef* param_types = (LLVMTypeRef*)malloc(sizeof(LLVMTypeRef) * ast->parameter_count);
             LLVMGetParamTypes(LLVMGetElementType(LLVMTypeOf(func)), param_types);
             for(int i = 0; i < ast->parameter_count; i++) {
-                params[i] = generateCastFromTo(params[i], param_types[i], function, builder, args, symbols, error_context);
+                params[i] = generateCastFromTo(ast->parameters[i], params[i], param_types[i], function, builder, args, symbols, error_context);
                 if(params[i] == NULL) {
                     error = true;
                 }
@@ -536,22 +546,30 @@ LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMBuilderRef 
     LLVMValueRef pointer = generateValueInFunction(ast->pointer, function, builder, args, symbols, error_context);
     if(pointer == NULL) {
         error = true;
-    }
-    if(LLVMIsAFunction(pointer) ||
-        (LLVMGetTypeKind(LLVMTypeOf(pointer)) == LLVMPointerTypeKind && LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(pointer))) == LLVMFunctionTypeKind) || 
-        LLVMGetTypeKind(LLVMTypeOf(pointer)) != LLVMPointerTypeKind) {
-        addError(error_context, "Only pointers can be indexed", ast->pointer->start, ERROR);
-        error = true;
+    } else {
+        pointer = generateExtractFromVariable(pointer, function, builder, args, symbols, error_context);
+        if (LLVMGetTypeKind(LLVMTypeOf(pointer)) != LLVMPointerTypeKind || LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(pointer))) == LLVMFunctionTypeKind) {
+            addError(error_context, "Only pointers or arrays can be indexed", ast->pointer->start, ERROR);
+            error = true;
+        }
     }
     LLVMValueRef index = generateValueInFunction(ast->index, function, builder, args, symbols, error_context);
     if(index == NULL) {
         error = true;
-    }
-    if(LLVMGetTypeKind(LLVMTypeOf(index)) != LLVMIntegerTypeKind) {
-        addError(error_context, "Index must be a integer", ast->index->start, ERROR);
-        error = true;
+    } else {
+        index = generateExtractFromVariable(index, function, builder, args, symbols, error_context);
+        if (LLVMGetTypeKind(LLVMTypeOf(index)) != LLVMIntegerTypeKind) {
+            addError(error_context, "Index must be a integer", ast->index->start, ERROR);
+            error = true;
+        }
     }
     if(!error) {
+        if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(pointer))) == LLVMArrayTypeKind) {
+            LLVMValueRef indecies[2] = {LLVMConstNull(LLVMIntType(1)), index};
+            return LLVMBuildGEP2(builder, LLVMGetElementType(LLVMTypeOf(pointer)), pointer, indecies, 2, "");
+        } else {
+            return LLVMBuildGEP2(builder, LLVMGetElementType(LLVMTypeOf(pointer)), pointer, &index, 1, "");
+        }
     }
     return NULL;
 }
@@ -621,6 +639,9 @@ static GenerateValueFunction generation_functions[] = {
 };
 
 LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    if(ast == NULL) {
+        return NULL;
+    }
     GenerateValueFunction generation_function = generation_functions[ast->type];
     if(generation_function == NULL) {
         switch (ast->type) {
@@ -628,7 +649,7 @@ LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMBuilderRef 
             addError(error_context, "Did not expect a type", ast->start, ERROR);
             break;
         case AST_ARRAY:
-            addError(error_context, "This is not a  definition", ast->start, ERROR);
+            addError(error_context, "This is not a definition", ast->start, ERROR);
             break;
         default:
             addError(error_context, "Unexpected expression", ast->start, ERROR);
