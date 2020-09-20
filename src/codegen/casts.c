@@ -1,6 +1,12 @@
 
 #include <codegen/casts.h>
 
+bool isAFloat(LLVMTypeRef type) {
+    return LLVMGetTypeKind(type) == LLVMFloatTypeKind || LLVMGetTypeKind(type) == LLVMDoubleTypeKind || 
+            LLVMGetTypeKind(type) == LLVMHalfTypeKind || LLVMGetTypeKind(type) == LLVMX86_FP80TypeKind ||
+            LLVMGetTypeKind(type) == LLVMFP128TypeKind || LLVMGetTypeKind(type) == LLVMPPC_FP128TypeKind;
+}
+
 LLVMValueRef generateCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef dest, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMTypeRef src = LLVMTypeOf(value);
     if(src == dest) {
@@ -10,10 +16,18 @@ LLVMValueRef generateCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef dest, 
             return LLVMBuildPointerCast(builder, value, dest, "");
         } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind) {
             return LLVMBuildSExt(builder, value, dest, "");
-        } else if(LLVMGetTypeKind(src) == LLVMFloatTypeKind || LLVMGetTypeKind(src) == LLVMDoubleTypeKind || 
-            LLVMGetTypeKind(src) == LLVMHalfTypeKind || LLVMGetTypeKind(src) == LLVMX86_FP80TypeKind ||
-            LLVMGetTypeKind(src) == LLVMFP128TypeKind) {
+        } else if(isAFloat(src)) {
             return LLVMBuildFPCast(builder, value, dest, "");
+        }
+    } else {
+        if(LLVMGetTypeKind(src) == LLVMPointerTypeKind && LLVMGetTypeKind(dest) == LLVMIntegerTypeKind) {
+            return LLVMBuildPtrToInt(builder, value, dest, "");
+        } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind && LLVMGetTypeKind(dest) == LLVMPointerTypeKind) {
+            return LLVMBuildIntToPtr(builder, value, dest, "");
+        } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind && isAFloat(dest)) {
+            return LLVMBuildSIToFP(builder, value, dest, "");
+        } else if(isAFloat(src) && LLVMGetTypeKind(dest) == LLVMIntegerTypeKind) {
+            return LLVMBuildFPToSI(builder, value, dest, "");
         }
     }
     addError(error_context, "Unable to cast this value", ast->start, ERROR);
@@ -33,6 +47,16 @@ LLVMValueRef generateConstCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef d
             LLVMGetTypeKind(src) == LLVMHalfTypeKind || LLVMGetTypeKind(src) == LLVMX86_FP80TypeKind ||
             LLVMGetTypeKind(src) == LLVMFP128TypeKind) {
             return LLVMConstFPCast(value, dest);
+        }
+    } else {
+        if(LLVMGetTypeKind(src) == LLVMPointerTypeKind && LLVMGetTypeKind(dest) == LLVMIntegerTypeKind) {
+            return LLVMConstPtrToInt(value, dest);
+        } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind && LLVMGetTypeKind(dest) == LLVMPointerTypeKind) {
+            return LLVMConstIntToPtr(value, dest);
+        } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind && isAFloat(dest)) {
+            return LLVMConstSIToFP(value, dest);
+        } else if(isAFloat(src) && LLVMGetTypeKind(dest) == LLVMIntegerTypeKind) {
+            return LLVMConstFPToSI(value, dest);
         }
     }
     addError(error_context, "Unable to cast this value", ast->start, ERROR);
