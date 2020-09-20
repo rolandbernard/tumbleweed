@@ -144,6 +144,7 @@ int determineToken(const char* from, TokenType* type) {
             len++;
         }
         if (from[len] == '.') {
+            len++;
             is_float = true;
             while ((from[len] >= '0' && from[len] <= '9') || from[len] == '_') {
                 len++;
