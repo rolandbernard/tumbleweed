@@ -57,6 +57,8 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
         return false;
     } else {
         if(ast->body != NULL) {
+            appendScope(symbols);
+            toNextScope(symbols);
             LLVMBasicBlockRef entry = LLVMAppendBasicBlock(symbol->llvm_value, "");
             LLVMBasicBlockRef block = LLVMAppendBasicBlock(symbol->llvm_value, "");
             LLVMBasicBlockRef exit = LLVMAppendBasicBlock(symbol->llvm_value, "");
@@ -65,6 +67,15 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
                 symbol->llvm_return = LLVMBuildAlloca(builder, LLVMGetReturnType(LLVMGetElementType(LLVMTypeOf(symbol->llvm_value))), "");
             }
             LLVMPositionBuilderAtEnd(builder, block);
+            bool error = false;
+            for(int i = 0; i < ast->parameter_count; i++) {
+                LLVMValueRef param = generateValueParameter(ast->parameters[i], symbol, builder, args, symbols, error_context);
+                if(param == NULL) {
+                    error = true;
+                } else {
+                    LLVMBuildStore(builder, LLVMGetParam(symbol->llvm_value, i), param);
+                }
+            }
             bool ret = generateValueCodeBlock(ast->body, symbol, builder, args, symbols, error_context) != NULL;
             LLVMValueRef last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
             if(last_instr == NULL || LLVMGetInstructionOpcode(last_instr) != LLVMBr) {
@@ -79,7 +90,9 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
             } else {
                 LLVMBuildRetVoid(builder);
             }
-            return ret;
+            toPrevScope(symbols);
+            freeLowerScopes(symbols);
+            return ret && !error;
         } else {
             return true;
         }
@@ -164,6 +177,37 @@ bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LL
         addSymbol(symbols, (void*)symbol);
     }
     return !error;
+}
+
+LLVMValueRef generateValueParameter(AstParameterDefinition* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    bool error = false;
+    LLVMTypeRef variable_type = generateType(ast->parameter_type, args, error_context);
+    if (variable_type == NULL) {
+        error = true;
+    }
+    if (getSymbolInCurrentScope(symbols, ast->name) != NULL) {
+        Symbol* old_symbol = (Symbol*)getSymbol(symbols, ast->name);
+        addErrorf(error_context, ast->start, ERROR, "Duplicate symbol name '%s'", ast->name);
+        addErrorf(error_context, old_symbol->ast->start, NOTE, "Previous definition of '%s'", ast->name);
+        error = true;
+    } else {
+        Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
+        symbol->name = ast->name;
+        symbol->ast = (Ast*)ast;
+        if (!error) {
+            LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+            LLVMPositionBuilderAtEnd(builder, LLVMGetEntryBasicBlock(function->llvm_value));
+            LLVMValueRef variable = LLVMBuildAlloca(builder, variable_type, "");
+            LLVMPositionBuilderAtEnd(builder, current_block);
+            symbol->llvm_value = variable;
+            addSymbol(symbols, (void*)symbol);
+            return variable;
+        } else {
+            symbol->llvm_value = NULL;
+            addSymbol(symbols, (void*)symbol);
+        }
+    }
+    return NULL;
 }
 
 bool generateRoot(AstRoot* ast, LLVMModuleRef module, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
@@ -489,8 +533,10 @@ LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* functio
     if(symbol == NULL) {
         addErrorf(error_context, ast->start, ERROR, "Undefined symbol '%s'", ast->name);
         return NULL;
-    } else {
+    } else if (symbol->llvm_value != NULL) {
         return symbol->llvm_value;
+    } else {
+        return NULL;
     }
 }
 
@@ -579,7 +625,7 @@ typedef LLVMValueRef (*GenerateValueFunction)(Ast* ast, Symbol* function, LLVMBu
 static GenerateValueFunction generation_functions[] = {
     [AST_ROOT] = (GenerateValueFunction)NULL,
     [AST_CODE_BLOCK] = (GenerateValueFunction)generateValueCodeBlock,
-    [AST_PARAMETER_DEFINITION] = (GenerateValueFunction)NULL,
+    [AST_PARAMETER_DEFINITION] = (GenerateValueFunction)generateValueParameter,
     [AST_FUNCTION_DEFINITION] = (GenerateValueFunction)NULL,
     [AST_VARIABLE_DEFINITION] = (GenerateValueFunction)generateValueVariable,
     [AST_IF_ELSE] = (GenerateValueFunction)generateValueIfElse,

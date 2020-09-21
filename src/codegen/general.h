@@ -12,6 +12,8 @@ bool generateRoot(AstRoot* ast, LLVMModuleRef module, LLVMBuilderRef builder, Ar
 
 LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
+LLVMValueRef generateValueParameter(AstParameterDefinition* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
 LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
