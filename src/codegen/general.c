@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <llvm-c/DebugInfo.h>
 
 #include "codegen/general.h"
 #include "codegen/assignments.h"
@@ -10,7 +11,7 @@
 #include "codegen/const.h"
 #include "codegen/casts.h"
 
-bool generateFunctionShell(AstFunctionDefinition* ast, LLVMModuleRef module, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+bool generateFunctionShell(AstFunctionDefinition* ast, File* file, LLVMMetadataRef file_meta, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     LLVMTypeRef return_type;
     if (ast->return_type == NULL) {
@@ -40,6 +41,14 @@ bool generateFunctionShell(AstFunctionDefinition* ast, LLVMModuleRef module, LLV
         if (!error) {
             LLVMTypeRef function_type = LLVMFunctionType(return_type, parameter_types, ast->parameter_count, false);
             LLVMValueRef function = LLVMAddFunction(module, ast->name, function_type);
+            if(args->debug) {
+                LineInfo line_info = positionInFileToLineInfo(file, ast->start);
+                LLVMMetadataRef difunc = LLVMDIBuilderCreateFunction(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, NULL, line_info.line, NULL, false, ast->body != NULL, 0, 0, true);
+                LLVMSetSubprogram(function, difunc);
+                symbol->file = file;
+                symbol->llvm_difunc = difunc;
+                symbol->llvm_difile = file_meta;
+            }
             symbol->llvm_value = function;
         } else {
             symbol->llvm_value = NULL;
@@ -51,7 +60,7 @@ bool generateFunctionShell(AstFunctionDefinition* ast, LLVMModuleRef module, LLV
     return !error;
 }
 
-bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     Symbol* symbol = (Symbol*)getSymbol(symbols, ast->name);
     if(symbol == NULL || symbol->ast != (Ast*)ast || symbol->llvm_value == NULL) {
         return false;
@@ -69,14 +78,19 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
             LLVMPositionBuilderAtEnd(builder, block);
             bool error = false;
             for(int i = 0; i < ast->parameter_count; i++) {
-                LLVMValueRef param = generateValueParameter(ast->parameters[i], symbol, builder, args, symbols, error_context);
+                LLVMValueRef param = generateValueParameter(ast->parameters[i], symbol, dibuilder, builder, args, symbols, error_context);
                 if(param == NULL) {
                     error = true;
                 } else {
                     LLVMBuildStore(builder, LLVMGetParam(symbol->llvm_value, i), param);
+                    if(args->debug) {
+                        LineInfo line_info = positionInFileToLineInfo(symbol->file, ast->parameters[i]->start);
+                        LLVMMetadataRef param_meta = LLVMDIBuilderCreateParameterVariable(dibuilder, symbol->llvm_difunc, ast->parameters[i]->name, strlen(ast->parameters[i]->name), i, symbol->llvm_difile, line_info.line, NULL, false, 0);
+                        LLVMInstructionSetDebugLoc(param, param_meta);
+                    }
                 }
             }
-            bool ret = generateValueCodeBlock(ast->body, symbol, builder, args, symbols, error_context) != NULL;
+            bool ret = generateValueCodeBlock(ast->body, symbol, dibuilder, builder, args, symbols, error_context) != NULL;
             LLVMValueRef last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
             if(last_instr == NULL || LLVMGetInstructionOpcode(last_instr) != LLVMBr) {
                 LLVMBuildBr(builder, exit);
@@ -99,7 +113,7 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
     }
 }
 
-bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     LLVMValueRef value;
     if (ast->initial_value != NULL) {
@@ -179,7 +193,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LL
     return !error;
 }
 
-LLVMValueRef generateValueParameter(AstParameterDefinition* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueParameter(AstParameterDefinition* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     LLVMTypeRef variable_type = generateType(ast->parameter_type, args, error_context);
     if (variable_type == NULL) {
@@ -210,14 +224,14 @@ LLVMValueRef generateValueParameter(AstParameterDefinition* ast, Symbol* functio
     return NULL;
 }
 
-bool generateRoot(AstRoot* ast, LLVMModuleRef module, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+bool generateRoot(AstRoot* ast, File* file, LLVMMetadataRef file_meta, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     appendScope(symbols);
     toNextScope(symbols);
     for (int i = 0; i < ast->children_count; i++) {
         Ast* child = ast->children[i];
         if (child->type == AST_FUNCTION_DEFINITION) {
-            if (!generateFunctionShell((AstFunctionDefinition*)child, module, builder, args, symbols, error_context)) {
+            if (!generateFunctionShell((AstFunctionDefinition*)child, file, file_meta, module, dibuilder, builder, args, symbols, error_context)) {
                 error = true;
             }
         }
@@ -225,11 +239,11 @@ bool generateRoot(AstRoot* ast, LLVMModuleRef module, LLVMBuilderRef builder, Ar
     for (int i = 0; i < ast->children_count; i++) {
         Ast* child = ast->children[i];
         if (child->type == AST_FUNCTION_DEFINITION) {
-            if (!generateFunctionBody((AstFunctionDefinition*)child, module, builder, args, symbols, error_context)) {
+            if (!generateFunctionBody((AstFunctionDefinition*)child, module, dibuilder, builder, args, symbols, error_context)) {
                 error = true;
             }
         } else if (child->type == AST_VARIABLE_DEFINITION) {
-            if (!generateGlobalVariable((AstVariableDefinition*)child, module, builder, args, symbols, error_context)) {
+            if (!generateGlobalVariable((AstVariableDefinition*)child, module, dibuilder, builder, args, symbols, error_context)) {
                 error = true;
             }
         } else {
@@ -242,14 +256,14 @@ bool generateRoot(AstRoot* ast, LLVMModuleRef module, LLVMBuilderRef builder, Ar
     return !error;
 }
 
-LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     LLVMValueRef value;
     if (ast->initial_value != NULL) {
         if (ast->is_extern) {
             addError(error_context, "Extern variables can't be inside functions", ast->start, ERROR);
         } else {
-            value = generateValueInFunction(ast->initial_value, function, builder, args, symbols, error_context);
+            value = generateValueInFunction(ast->initial_value, function, dibuilder, builder, args, symbols, error_context);
             if (value == NULL) {
                 error = true;
             } else {
@@ -331,9 +345,9 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
     return NULL;
 }
 
-LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef condition = generateValueInFunction(ast->condition, function, builder, args, symbols, error_context);
+    LLVMValueRef condition = generateValueInFunction(ast->condition, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_bool = NULL;
     if (condition == NULL) {
         error = true;
@@ -373,7 +387,7 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
         LLVMBuildCondBr(builder, condition_bool, if_start, else_start);
     }
     LLVMPositionBuilderAtEnd(builder, if_start);
-    LLVMValueRef if_value = generateValueInFunction(ast->if_block, function, builder, args, symbols, error_context);
+    LLVMValueRef if_value = generateValueInFunction(ast->if_block, function, dibuilder, builder, args, symbols, error_context);
     if (if_value == NULL) {
         error = true;
     }
@@ -385,7 +399,7 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
     }
     LLVMPositionBuilderAtEnd(builder, else_start);
     if (ast->else_block != NULL) {
-        LLVMValueRef else_value = generateValueInFunction(ast->else_block, function, builder, args, symbols, error_context);
+        LLVMValueRef else_value = generateValueInFunction(ast->else_block, function, dibuilder, builder, args, symbols, error_context);
         if (else_value == NULL) {
             error = true;
         }
@@ -407,14 +421,14 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
     }
 }
 
-LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     LLVMBasicBlockRef for_start = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(LLVMGetInsertBlock(builder)), "");
     LLVMBasicBlockRef for_body = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(for_start), "");
     LLVMBasicBlockRef for_end = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(for_body), "");
     LLVMBuildBr(builder, for_start);
     LLVMPositionBuilderAtEnd(builder, for_start);
-    LLVMValueRef condition = generateValueInFunction(ast->condition, function, builder, args, symbols, error_context);
+    LLVMValueRef condition = generateValueInFunction(ast->condition, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_bool = NULL;
     if (condition == NULL) {
         error = true;
@@ -449,7 +463,7 @@ LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilder
         LLVMBuildCondBr(builder, condition_bool, for_body, for_end);
     }
     LLVMPositionBuilderAtEnd(builder, for_body);
-    LLVMValueRef body = generateValueInFunction(ast->code_block, function, builder, args, symbols, error_context);
+    LLVMValueRef body = generateValueInFunction(ast->code_block, function, dibuilder, builder, args, symbols, error_context);
     if(body == NULL) {
         error = true;
     }
@@ -465,13 +479,13 @@ LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilder
     }
 }
 
-LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     if(ast->operand != NULL) {
         if(function->llvm_return == NULL) {
             addError(error_context, "This function can't return a value", ast->operand->start, ERROR);
             return NULL;
         } else {
-            LLVMValueRef value = generateValueInFunction(ast->operand, function, builder, args, symbols, error_context);
+            LLVMValueRef value = generateValueInFunction(ast->operand, function, dibuilder, builder, args, symbols, error_context);
             if(value != NULL) {
                 value = generateExtractFromVariable(value, function, builder, args, symbols, error_context);
                 value = generateCastFromTo(ast->operand, value, LLVMGetElementType(LLVMTypeOf(function->llvm_return)), function, builder, args, symbols, error_context);
@@ -495,12 +509,12 @@ LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMB
     }
 }
 
-LLVMValueRef generateValueCodeBlock(AstCodeBlock* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueCodeBlock(AstCodeBlock* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     appendScope(symbols);
     toNextScope(symbols);
     for(int i = 0; i < ast->children_count; i++) {
-        LLVMValueRef value = generateValueInFunction(ast->children[i], function, builder, args, symbols, error_context);
+        LLVMValueRef value = generateValueInFunction(ast->children[i], function, dibuilder, builder, args, symbols, error_context);
         if(value == NULL) {
             error = true;
         }
@@ -514,7 +528,7 @@ LLVMValueRef generateValueCodeBlock(AstCodeBlock* ast, Symbol* function, LLVMBui
     }
 }
 
-LLVMValueRef generateValueIntegerLiteral(AstIntegerLiteral* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueIntegerLiteral(AstIntegerLiteral* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     int base = 10;
     char* str = ast->integer_string;
     int len = strlen(str);
@@ -536,11 +550,11 @@ LLVMValueRef generateValueIntegerLiteral(AstIntegerLiteral* ast, Symbol* functio
     return LLVMConstIntOfStringAndSize(LLVMIntType(64), str, len, base);
 }
 
-LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     return LLVMConstRealOfString(LLVMDoubleType(), ast->float_string);
 }
 
-LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     Symbol* symbol = getSymbol(symbols, ast->name);
     if(symbol == NULL) {
         addErrorf(error_context, ast->start, ERROR, "Undefined symbol '%s'", ast->name);
@@ -552,9 +566,9 @@ LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* functio
     }
 }
 
-LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef func = generateValueInFunction(ast->to_call, function, builder, args, symbols, error_context);
+    LLVMValueRef func = generateValueInFunction(ast->to_call, function, dibuilder, builder, args, symbols, error_context);
     if(func == NULL) {
         error = true;
     } else {
@@ -566,7 +580,7 @@ LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMBuilderRef bu
     }
     LLVMValueRef* params = (LLVMValueRef*)malloc(sizeof(LLVMValueRef) * ast->parameter_count);
     for(int i = 0; i < ast->parameter_count; i++) {
-        params[i] = generateValueInFunction(ast->parameters[i], function, builder, args, symbols, error_context);
+        params[i] = generateValueInFunction(ast->parameters[i], function, dibuilder, builder, args, symbols, error_context);
         if(params[i] == NULL) {
             error = true;
         } else {
@@ -599,9 +613,9 @@ LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMBuilderRef bu
     return NULL;
 }
 
-LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef pointer = generateValueInFunction(ast->pointer, function, builder, args, symbols, error_context);
+    LLVMValueRef pointer = generateValueInFunction(ast->pointer, function, dibuilder, builder, args, symbols, error_context);
     if(pointer == NULL) {
         error = true;
     } else {
@@ -611,7 +625,7 @@ LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMBuilderRef 
             error = true;
         }
     }
-    LLVMValueRef index = generateValueInFunction(ast->index, function, builder, args, symbols, error_context);
+    LLVMValueRef index = generateValueInFunction(ast->index, function, dibuilder, builder, args, symbols, error_context);
     if(index == NULL) {
         error = true;
     } else {
@@ -634,7 +648,7 @@ LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMBuilderRef 
     return NULL;
 }
 
-typedef LLVMValueRef (*GenerateValueFunction)(Ast* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+typedef LLVMValueRef (*GenerateValueFunction)(Ast* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 static GenerateValueFunction generation_functions[] = {
     [AST_ROOT] = (GenerateValueFunction)NULL,
@@ -698,7 +712,7 @@ static GenerateValueFunction generation_functions[] = {
     [AST_ADDRESS] = (GenerateValueFunction)NULL,
 };
 
-LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     if(ast == NULL) {
         return NULL;
     }
@@ -717,6 +731,6 @@ LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMBuilderRef 
         }
         return NULL;
     } else {
-        return generation_function(ast, function, builder, args, symbols, error_context);
+        return generation_function(ast, function, dibuilder, builder, args, symbols, error_context);
     }
 }

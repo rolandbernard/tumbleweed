@@ -1,18 +1,20 @@
 
+#include <llvm-c/DebugInfo.h>
+
 #include "codegen/assignments.h"
 #include "codegen/general.h"
 #include "codegen/casts.h"
 
-LLVMValueRef generateValueAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -28,9 +30,9 @@ LLVMValueRef generateValueAssignment(AstAssignment* ast, Symbol* function, LLVMB
     return NULL;
 }
 
-LLVMValueRef generateValueOrAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueOrAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -40,7 +42,7 @@ LLVMValueRef generateValueOrAssignment(AstAssignment* ast, Symbol* function, LLV
         addError(error_context, "The or operation only works for integers", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -58,9 +60,9 @@ LLVMValueRef generateValueOrAssignment(AstAssignment* ast, Symbol* function, LLV
     return NULL;
 }
 
-LLVMValueRef generateValueAndAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueAndAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -70,7 +72,7 @@ LLVMValueRef generateValueAndAssignment(AstAssignment* ast, Symbol* function, LL
         addError(error_context, "The and operation only works for integers", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -88,9 +90,9 @@ LLVMValueRef generateValueAndAssignment(AstAssignment* ast, Symbol* function, LL
     return NULL;
 }
 
-LLVMValueRef generateValueXorAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueXorAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -100,7 +102,7 @@ LLVMValueRef generateValueXorAssignment(AstAssignment* ast, Symbol* function, LL
         addError(error_context, "The xor operation only works for integers", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -118,9 +120,9 @@ LLVMValueRef generateValueXorAssignment(AstAssignment* ast, Symbol* function, LL
     return NULL;
 }
 
-LLVMValueRef generateValueShiftRightAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueShiftRightAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -130,7 +132,7 @@ LLVMValueRef generateValueShiftRightAssignment(AstAssignment* ast, Symbol* funct
         addError(error_context, "The shift right operation only works for integers", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -148,9 +150,9 @@ LLVMValueRef generateValueShiftRightAssignment(AstAssignment* ast, Symbol* funct
     return NULL;
 }
 
-LLVMValueRef generateValueShiftLeftAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueShiftLeftAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -160,7 +162,7 @@ LLVMValueRef generateValueShiftLeftAssignment(AstAssignment* ast, Symbol* functi
         addError(error_context, "The shift left operation only works for integers", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -178,9 +180,9 @@ LLVMValueRef generateValueShiftLeftAssignment(AstAssignment* ast, Symbol* functi
     return NULL;
 }
 
-LLVMValueRef generateValueAddAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueAddAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -195,7 +197,7 @@ LLVMValueRef generateValueAddAssignment(AstAssignment* ast, Symbol* function, LL
         addError(error_context, "The add operation only works for integers and floats", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -218,9 +220,9 @@ LLVMValueRef generateValueAddAssignment(AstAssignment* ast, Symbol* function, LL
     return NULL;
 }
 
-LLVMValueRef generateValueSubtractAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueSubtractAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -235,7 +237,7 @@ LLVMValueRef generateValueSubtractAssignment(AstAssignment* ast, Symbol* functio
         addError(error_context, "The subtract operation only works for integers and floats", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -258,9 +260,9 @@ LLVMValueRef generateValueSubtractAssignment(AstAssignment* ast, Symbol* functio
     return NULL;
 }
 
-LLVMValueRef generateValueMultiplyAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueMultiplyAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -275,7 +277,7 @@ LLVMValueRef generateValueMultiplyAssignment(AstAssignment* ast, Symbol* functio
         addError(error_context, "The multiply operation only works for integers and floats", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -298,9 +300,9 @@ LLVMValueRef generateValueMultiplyAssignment(AstAssignment* ast, Symbol* functio
     return NULL;
 }
 
-LLVMValueRef generateValueDivideAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueDivideAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -315,7 +317,7 @@ LLVMValueRef generateValueDivideAssignment(AstAssignment* ast, Symbol* function,
         addError(error_context, "The divide operation only works for integers and floats", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {
@@ -338,9 +340,9 @@ LLVMValueRef generateValueDivideAssignment(AstAssignment* ast, Symbol* function,
     return NULL;
 }
 
-LLVMValueRef generateValueRemainderAssignment(AstAssignment* ast, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateValueRemainderAssignment(AstAssignment* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef dest = generateValueInFunction(ast->destination, function, builder, args, symbols, error_context);
+    LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
     } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest)) {
@@ -350,7 +352,7 @@ LLVMValueRef generateValueRemainderAssignment(AstAssignment* ast, Symbol* functi
         addError(error_context, "The remainder operation only works for integers", ast->destination->start, ERROR);
         error = true;
     }
-    LLVMValueRef value = generateValueInFunction(ast->value, function, builder, args, symbols, error_context);
+    LLVMValueRef value = generateValueInFunction(ast->value, function, dibuilder, builder, args, symbols, error_context);
     if(value == NULL) {
         error = true;
     } else {

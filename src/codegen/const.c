@@ -564,7 +564,15 @@ LLVMValueRef generateConstFloatLiteral(AstFloatLiteral* ast, Args* args, SymbolT
 }
 
 LLVMValueRef generateConstVariableAccess(AstVariableAccess* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    return NULL;
+    Symbol* symbol = getSymbol(symbols, ast->name);
+    if(symbol == NULL) {
+        addErrorf(error_context, ast->start, ERROR, "Undefined symbol '%s'", ast->name);
+        return NULL;
+    } else if (symbol->llvm_value != NULL && LLVMIsAFunction(symbol->llvm_value)) {
+        return symbol->llvm_value;
+    } else {
+        return NULL;
+    }
 }
 
 typedef LLVMValueRef (*GenerateConstFunction)(Ast* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);

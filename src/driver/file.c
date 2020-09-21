@@ -183,6 +183,11 @@ File* addFile(FileSet* file_set, const char* name, const char* path) {
         File* file = &(file_set->files[file_set->file_count - 1]);
         file->filename = filename;
         file->path = absolute_path;
+        file->directory_str_len = strlen(absolute_path);
+        while(file->directory_str_len > 0 && absolute_path[file->directory_str_len] != '/') {
+            file->directory_str_len--;
+        }
+        file->file_str_len = strlen(absolute_path) - file->directory_str_len - 1;
         file->offset = file_set->next_offset;
         file_set->next_offset += size;
         file->size = size;

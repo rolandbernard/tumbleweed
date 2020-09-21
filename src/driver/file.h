@@ -11,6 +11,8 @@
 typedef struct File_s {
     char* filename;
     char* path;
+    int directory_str_len;
+    int file_str_len;
     int offset;
     int line_count;
     int* line_offsets;

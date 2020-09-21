@@ -22,4 +22,6 @@ int parseUTF8(char* c, int* length);
 
 int printUTF8(int c, char* out);
 
+#define COMPILER_NAME "tumbleweed 0.0.1"
+
 #endif

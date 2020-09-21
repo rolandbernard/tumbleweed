@@ -3,6 +3,7 @@
 
 #include <llvm-c/Core.h>
 
+#include "driver/file.h"
 #include "parser/ast.h"
 #include "common/hashtable.h"
 
@@ -12,6 +13,9 @@ typedef struct {
     LLVMValueRef llvm_value;
     // Only used for functions
     LLVMValueRef llvm_return;
+    LLVMMetadataRef llvm_difunc;
+    LLVMMetadataRef llvm_difile;
+    File* file;
 } Symbol;
 
 typedef struct {
