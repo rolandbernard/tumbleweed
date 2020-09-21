@@ -43,7 +43,12 @@ bool generateFunctionShell(AstFunctionDefinition* ast, File* file, LLVMMetadataR
             LLVMValueRef function = LLVMAddFunction(module, ast->name, function_type);
             if(args->debug) {
                 LineInfo line_info = positionInFileToLineInfo(file, ast->start);
-                LLVMMetadataRef difunc = LLVMDIBuilderCreateFunction(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, NULL, line_info.line, NULL, false, ast->body != NULL, 0, 0, true);
+                LLVMMetadataRef* parameter_type_meta = (LLVMMetadataRef*)malloc(sizeof(LLVMMetadataRef) * ast->parameter_count);
+                for (int i = 0; i < ast->parameter_count; i++) {
+                    parameter_type_meta[i] = generateTypeMeta(ast->parameters[i]->parameter_type, dibuilder, args);
+                }
+                LLVMMetadataRef difunc = LLVMDIBuilderCreateFunction(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, file_meta, line_info.line, LLVMDIBuilderCreateSubroutineType(dibuilder, file_meta, parameter_type_meta, ast->parameter_count, 0), false, ast->body != NULL, 0, 0, true);
+                free(parameter_type_meta);
                 LLVMSetSubprogram(function, difunc);
                 symbol->file = file;
                 symbol->llvm_difunc = difunc;
@@ -85,8 +90,10 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
                     LLVMBuildStore(builder, LLVMGetParam(symbol->llvm_value, i), param);
                     if(args->debug) {
                         LineInfo line_info = positionInFileToLineInfo(symbol->file, ast->parameters[i]->start);
-                        LLVMMetadataRef param_meta = LLVMDIBuilderCreateParameterVariable(dibuilder, symbol->llvm_difunc, ast->parameters[i]->name, strlen(ast->parameters[i]->name), i, symbol->llvm_difile, line_info.line, NULL, false, 0);
-                        LLVMInstructionSetDebugLoc(param, param_meta);
+                        LLVMMetadataRef param_type_meta = generateTypeMeta(ast->parameters[i]->parameter_type, dibuilder, args);
+                        LLVMMetadataRef param_meta = LLVMDIBuilderCreateParameterVariable(dibuilder, symbol->llvm_difunc, ast->parameters[i]->name, strlen(ast->parameters[i]->name), i, symbol->llvm_difile, line_info.line, param_type_meta, false, 0);
+                        LLVMMetadataRef param_loc = LLVMDIBuilderCreateDebugLocation(LLVMGetGlobalContext(), line_info.line, line_info.column, symbol->llvm_difunc, NULL);
+                        LLVMDIBuilderInsertDeclareAtEnd(dibuilder, param, param_meta, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), param_loc, block);
                     }
                 }
             }
@@ -113,7 +120,7 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
     }
 }
 
-bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadataRef file_meta, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     LLVMValueRef value;
     if (ast->initial_value != NULL) {
@@ -184,6 +191,12 @@ bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LL
             if (ast->initial_value != NULL) {
                 LLVMSetInitializer(variable, value);
             }
+            if(args->debug) {
+                LineInfo line_info = positionInFileToLineInfo(file, ast->start);
+                LLVMMetadataRef type_meta = generateTypeMeta(ast->variable_type, dibuilder, args);
+                LLVMMetadataRef variable_meta = LLVMDIBuilderCreateGlobalVariableExpression(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, file_meta, line_info.line, type_meta, false, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), NULL, 0);
+                LLVMGlobalSetMetadata(variable, 0, variable_meta);
+            }
             symbol->llvm_value = variable;
         } else {
             symbol->llvm_value = NULL;
@@ -243,7 +256,7 @@ bool generateRoot(AstRoot* ast, File* file, LLVMMetadataRef file_meta, LLVMModul
                 error = true;
             }
         } else if (child->type == AST_VARIABLE_DEFINITION) {
-            if (!generateGlobalVariable((AstVariableDefinition*)child, module, dibuilder, builder, args, symbols, error_context)) {
+            if (!generateGlobalVariable((AstVariableDefinition*)child, file, file_meta, module, dibuilder, builder, args, symbols, error_context)) {
                 error = true;
             }
         } else {
@@ -330,9 +343,17 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
             LLVMPositionBuilderAtEnd(builder, LLVMGetEntryBasicBlock(function->llvm_value));
             LLVMValueRef variable = LLVMBuildAlloca(builder, variable_type, "");
+            LLVMInstructionSetDebugLoc(variable, NULL);
             LLVMPositionBuilderAtEnd(builder, current_block);
             if (ast->initial_value != NULL) {
                 LLVMBuildStore(builder, value, variable);
+            }
+            if(args->debug) {
+                LineInfo line_info = positionInFileToLineInfo(function->file, ast->start);
+                LLVMMetadataRef type_meta = generateTypeMeta(ast->variable_type, dibuilder, args);
+                LLVMMetadataRef meta = LLVMDIBuilderCreateAutoVariable(dibuilder, function->llvm_difunc, ast->name, strlen(ast->name), function->llvm_difile, line_info.line, type_meta, false, 0, 0);
+                LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(LLVMGetGlobalContext(), line_info.line, line_info.column, function->llvm_difunc, NULL);
+                LLVMDIBuilderInsertDeclareAtEnd(dibuilder, variable, meta, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), loc, LLVMGetInsertBlock(builder));
             }
             symbol->llvm_value = variable;
             addSymbol(symbols, (void*)symbol);
@@ -731,6 +752,11 @@ LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMDIBuilderRe
         }
         return NULL;
     } else {
+        if(args->debug) {
+            LineInfo line_info = positionInFileToLineInfo(function->file, ast->start);
+            LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(LLVMGetGlobalContext(), line_info.line, line_info.column, function->llvm_difunc, NULL);
+            LLVMSetCurrentDebugLocation2(builder, loc);
+        }
         return generation_function(ast, function, dibuilder, builder, args, symbols, error_context);
     }
 }

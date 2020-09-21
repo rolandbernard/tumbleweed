@@ -64,7 +64,7 @@ LLVMValueRef generateConstCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef d
 }
 
 LLVMValueRef generateExtractFromVariable(LLVMValueRef value, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    if(LLVMIsAAllocaInst(value) || LLVMIsAGetElementPtrInst(value)) {
+    if(LLVMIsAAllocaInst(value) || LLVMIsAGetElementPtrInst(value) || LLVMIsAGlobalVariable(value)) {
         if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(value))) == LLVMArrayTypeKind) {
             return value;
         } else {

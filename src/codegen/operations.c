@@ -556,7 +556,7 @@ LLVMValueRef generateValueRemainder(AstBinaryOperation* ast, Symbol* function, L
 LLVMValueRef generateValueReference(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef value = generateValueInFunction(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
-        if(LLVMIsAAllocaInst(value) || LLVMIsAGetElementPtrInst(value)) {
+        if(LLVMIsAAllocaInst(value) || LLVMIsAGetElementPtrInst(value) || LLVMIsAGlobalVariable(value)) {
             LLVMValueRef value_int = LLVMBuildPtrToInt(builder, value, LLVMIntType(64), "");
             return LLVMBuildIntToPtr(builder, value_int, LLVMTypeOf(value), "");
         } else {
@@ -637,7 +637,7 @@ LLVMValueRef generateValueNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBu
 LLVMValueRef generateValueIncrement(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef value = generateValueInFunction(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
-        if(!LLVMIsAAllocaInst(value) && !LLVMIsAGetElementPtrInst(value)) {
+        if(!LLVMIsAAllocaInst(value) && !LLVMIsAGetElementPtrInst(value) && !LLVMIsAGlobalVariable(value)) {
             addError(error_context, "Can't write to a temporary value", ast->operand->start, ERROR);
         } else {
             LLVMValueRef value_ext = generateExtractFromVariable(value, function, builder, args, symbols, error_context);
@@ -672,7 +672,7 @@ LLVMValueRef generateValueIncrement(AstUnaryOperation* ast, Symbol* function, LL
 LLVMValueRef generateValueDecrement(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef value = generateValueInFunction(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
-        if(!LLVMIsAAllocaInst(value) && !LLVMIsAGetElementPtrInst(value)) {
+        if(!LLVMIsAAllocaInst(value) && !LLVMIsAGetElementPtrInst(value) && !LLVMIsAGlobalVariable(value)) {
             addError(error_context, "Can't write to a temporary value", ast->operand->start, ERROR);
         } else {
             LLVMValueRef value_ext = generateExtractFromVariable(value, function, builder, args, symbols, error_context);
