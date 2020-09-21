@@ -148,7 +148,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LL
             variable_type = generateType(ast->variable_type, args, error_context);
             if (variable_type == NULL) {
                 error = true;
-            } else if (ast->initial_value != NULL) {
+            } else if (ast->initial_value != NULL && value != NULL) {
                 value = generateConstCastFromTo(ast->variable_type, value, variable_type, args, symbols, error_context);
                 if(value == NULL) {
                     error = true;
@@ -295,7 +295,7 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             variable_type = generateType(ast->variable_type, args, error_context);
             if (variable_type == NULL) {
                 error = true;
-            } else if (ast->initial_value != NULL) {
+            } else if (ast->initial_value != NULL && value != NULL) {
                 value = generateCastFromTo(ast->variable_type, value, variable_type, function, builder, args, symbols, error_context);
                 if(value == NULL) {
                     error = true;
@@ -342,6 +342,12 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
         LLVMTypeRef condition_type = LLVMTypeOf(condition);
         switch (LLVMGetTypeKind(condition_type)) {
         case LLVMIntegerTypeKind:
+            if(LLVMGetIntTypeWidth(condition_type) == 1) {
+                condition_bool = condition;
+            } else {
+                condition_bool = LLVMBuildICmp(builder, LLVMIntNE, condition, LLVMConstNull(condition_type), "");
+            }
+            break;
         case LLVMPointerTypeKind:
             condition_bool = LLVMBuildICmp(builder, LLVMIntNE, condition, LLVMConstNull(condition_type), "");
             break;
@@ -350,7 +356,7 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
         case LLVMDoubleTypeKind:
         case LLVMX86_FP80TypeKind:
         case LLVMFP128TypeKind:
-            condition_bool = LLVMBuildFCmp(builder, LLVMRealONE, condition, LLVMConstNull(condition_type), "");
+            condition_bool = LLVMBuildFCmp(builder, LLVMRealUNE, condition, LLVMConstNull(condition_type), "");
             break;
         default:
             addError(error_context, "Condition has a unsupported type", ast->condition->start, ERROR);
@@ -385,11 +391,11 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMBuilderRe
         }
     }
     last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
-    if(last_instr == NULL || LLVMGetInstructionOpcode(last_instr) != LLVMBr) {
+    if (last_instr == NULL || LLVMGetInstructionOpcode(last_instr) != LLVMBr) {
         LLVMBuildBr(builder, ifelse_end);
-        require_end = true;   
+        require_end = true;
     }
-    if(require_end) {
+    if (require_end) {
         LLVMPositionBuilderAtEnd(builder, ifelse_end);
     } else {
         LLVMDeleteBasicBlock(ifelse_end);
@@ -417,6 +423,12 @@ LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMBuilder
         LLVMTypeRef condition_type = LLVMTypeOf(condition);
         switch (LLVMGetTypeKind(condition_type)) {
         case LLVMIntegerTypeKind:
+            if(LLVMGetIntTypeWidth(condition_type) == 1) {
+                condition_bool = condition;
+            } else {
+                condition_bool = LLVMBuildICmp(builder, LLVMIntNE, condition, LLVMConstNull(condition_type), "");
+            }
+            break;
         case LLVMPointerTypeKind:
             condition_bool = LLVMBuildICmp(builder, LLVMIntNE, condition, LLVMConstNull(condition_type), "");
             break;
@@ -607,6 +619,8 @@ LLVMValueRef generateValueIndex(AstIndex* ast, Symbol* function, LLVMBuilderRef 
         if (LLVMGetTypeKind(LLVMTypeOf(index)) != LLVMIntegerTypeKind) {
             addError(error_context, "Index must be a integer", ast->index->start, ERROR);
             error = true;
+        } else if(LLVMGetIntTypeWidth(LLVMTypeOf(index)) < 64) {
+            index = LLVMBuildIntCast2(builder, index, LLVMIntType(64), 1, "");
         }
     }
     if(!error) {

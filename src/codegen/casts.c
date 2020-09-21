@@ -1,7 +1,7 @@
 
 #include <codegen/casts.h>
 
-bool isAFloat(LLVMTypeRef type) {
+static bool isAFloat(LLVMTypeRef type) {
     return LLVMGetTypeKind(type) == LLVMFloatTypeKind || LLVMGetTypeKind(type) == LLVMDoubleTypeKind || 
             LLVMGetTypeKind(type) == LLVMHalfTypeKind || LLVMGetTypeKind(type) == LLVMX86_FP80TypeKind ||
             LLVMGetTypeKind(type) == LLVMFP128TypeKind || LLVMGetTypeKind(type) == LLVMPPC_FP128TypeKind;

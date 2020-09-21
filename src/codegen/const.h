@@ -44,15 +44,17 @@ LLVMValueRef generateConstDivide(AstBinaryOperation* ast, Args* args, SymbolTabl
 
 LLVMValueRef generateConstRemainder(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
-LLVMValueRef generateConstReference(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
-
-LLVMValueRef generateConstDereference(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
-
 LLVMValueRef generateConstPositive(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 LLVMValueRef generateConstNegative(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 LLVMValueRef generateConstNot(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
+LLVMValueRef generateConstIntegerLiteral(AstIntegerLiteral* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
+LLVMValueRef generateConstFloatLiteral(AstFloatLiteral* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
+LLVMValueRef generateConstVariableAccess(AstVariableAccess* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 LLVMValueRef generateConst(Ast* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
             
