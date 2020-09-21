@@ -126,11 +126,11 @@ bool generateGlobalVariable(AstVariableDefinition* ast, LLVMModuleRef module, LL
             if (variable_type == NULL) {
                 error = true;
             } else {
-                LLVMValueRef size = generateConst(ast->initial_value, args, symbols, error_context);
+                LLVMValueRef size = generateConst(ast_array->lhs, args, symbols, error_context);
                 if (size == NULL) {
                     error = true;
                 } else {
-                    if (!(LLVMGetTypeKind(LLVMTypeOf(size)) != LLVMIntegerTypeKind)) {
+                    if (LLVMGetTypeKind(LLVMTypeOf(size)) != LLVMIntegerTypeKind) {
                         addError(error_context, "The Array size must be an integer", ast_array->lhs->start, ERROR);
                         error = true;
                     } else {

@@ -21,9 +21,10 @@ LLVMTypeRef generateTypeBase(AstVariableAccess* ast, Args* args, ErrorContext* e
         bool is_number = true;
         int i = 1;
         while(ast->name[i] != 0 && is_number) {
-            if(i < '0' || i > '9') {
+            if(ast->name[i] < '0' || ast->name[i] > '9') {
                 is_number = false;
             }
+            i++;
         }
         if(is_number) {
             return LLVMIntType(atoi(ast->name + 1));

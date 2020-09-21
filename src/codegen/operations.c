@@ -3,7 +3,7 @@
 #include "codegen/general.h"
 #include "codegen/casts.h"
 
-int llvm_float_type_to_length[] = {
+static int llvm_float_type_to_length[] = {
     [LLVMHalfTypeKind] = 16,
     [LLVMFloatTypeKind] = 32,
     [LLVMDoubleTypeKind] = 64,
