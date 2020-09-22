@@ -5,8 +5,8 @@ This is the source code repository for the Tumbleweed compiler.
 
 ## About
 
-Tumbleweed is a strongly typed programming language.
-Just like tumbleweed this programming language is useless and unwanted. 
+Tumbleweed is a small strongly typed programming language.
+Just like real tumbleweed this programming language is useless and unwanted. 
 
 ## Installing from source
 ```
