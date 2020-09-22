@@ -8,15 +8,35 @@ typedef enum {
 
     TOKEN_KEYWORD_START,
 
+    TOKEN_FN,       // fn
     TOKEN_IF,       // if
+    TOKEN_IN,       // in
+    TOKEN_AS,       // as
     TOKEN_FOR,      // for
     TOKEN_ELSE,     // else
+    TOKEN_GOTO,     // goto
+    TOKEN_FROM,     // from
+    TOKEN_CASE,     // case
+    TOKEN_TRUE,     // true
+    TOKEN_FALSE,    // false
+    TOKEN_CONST,    // const
+    TOKEN_USING,    // using
+    TOKEN_BREAK,    // break
+    TOKEN_SWITCH,   // switch
+    TOKEN_SIMPLE,   // simple
     TOKEN_EXTERN,   // extern
     TOKEN_RETURN,   // return
+    TOKEN_IMPORT,   // import
+    TOKEN_EXPORT,   // export
+    TOKEN_TYPEOF,   // typeof
+    TOKEN_VOLATILE, // volatile
+    TOKEN_CONTINUE, // continue
 
     TOKEN_KEYWORD_END,
     TOKEN_OPERATOR_START,
 
+    TOKEN_AT,           // @
+    TOKEN_DOLLAR,       // $
     TOKEN_DBL_AND,      // &&
     TOKEN_DBL_PIPE,     // ||
     TOKEN_DBL_EQU,      // ==
@@ -30,6 +50,7 @@ typedef enum {
     TOKEN_CARET,        // ^
     TOKEN_DBL_GTR,      // >>
     TOKEN_DBL_LES,      // <<
+    TOKEN_LES_GTR,      // <>
     TOKEN_PLUS,         // +
     TOKEN_MINUS,        // -
     TOKEN_STAR,         // *
@@ -38,9 +59,11 @@ typedef enum {
     TOKEN_TILDE,        // ~
     TOKEN_EXCL,         // !
     TOKEN_POINT,        // .
+    TOKEN_DBL_POINT,    // ..
     TOKEN_DBL_PLUS,     // ++
     TOKEN_DBL_MINUS,    // --
     TOKEN_COLON,        // :
+    TOKEN_DBL_COLON,    // ::
     TOKEN_COMMA,        // ,
     TOKEN_SEMICOLON,    // ;
     TOKEN_ROUND_OPEN,   // (
@@ -67,7 +90,10 @@ typedef enum {
 
     TOKEN_INT_CONST,    // 42
     TOKEN_FLOAT_CONST,  // 4.2
+    TOKEN_CHAR_CONST,   // 'a'
+    TOKEN_STRING_CONST, // "abc"
     TOKEN_IDENTIFIER,   // abc
+    TOKEN_CUSTOM_OPERATOR, // `abc`
 
     TOKEN_SPECIAL_END,
 

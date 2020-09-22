@@ -117,6 +117,20 @@ static void freeAstFloatLiteral(AstFloatLiteral* ast) {
     }
 }
 
+static void freeAstStringLiteral(AstStringLiteral* ast) {
+    if (ast != NULL) {
+        free(ast->string_content);
+        ast->string_content = NULL;
+        free(ast);
+    }
+}
+
+static void freeAstCharacterLiteral(AstCharacterLiteral* ast) {
+    if (ast != NULL) {
+        free(ast);
+    }
+}
+
 static void freeAstBinaryOperation(AstBinaryOperation* ast) {
     if (ast != NULL) {
         freeAst(ast->lhs);
@@ -179,6 +193,8 @@ static FreeFunction free_functions[] = {
     [AST_FOR_LOOP] = (FreeFunction)freeAstForLoop,
     [AST_INTEGER_LITERAL] = (FreeFunction)freeAstIntegerLiteral,
     [AST_FLOAT_LITERAL] = (FreeFunction)freeAstFloatLiteral,
+    [AST_STRING_LITERAL] = (FreeFunction)freeAstStringLiteral,
+    [AST_CHARACTER_LITERAL] = (FreeFunction)freeAstCharacterLiteral,
     [AST_VARIABLE_ACCESS] = (FreeFunction)freeAstVariableAccess,
     [AST_CALL] = (FreeFunction)freeAstCall,
     [AST_INDEX] = (FreeFunction)freeAstIndex,

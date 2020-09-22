@@ -18,6 +18,8 @@ typedef enum {
     AST_FOR_LOOP,
     AST_INTEGER_LITERAL,
     AST_FLOAT_LITERAL,
+    AST_STRING_LITERAL,
+    AST_CHARACTER_LITERAL,
     AST_VARIABLE_ACCESS,
     AST_CALL,
     AST_INDEX,
@@ -95,6 +97,7 @@ typedef struct {
 typedef struct {
     AST_BASE
     bool is_extern;
+    bool is_vararg;
     char* name;
     int parameter_count;
     AstParameterDefinition** parameters;
@@ -138,6 +141,16 @@ typedef struct {
     AST_BASE
     char* float_string;
 } AstFloatLiteral;
+
+typedef struct {
+    AST_BASE
+    char* string_content;
+} AstStringLiteral;
+
+typedef struct {
+    AST_BASE
+    int character;
+} AstCharacterLiteral;
 
 typedef struct {
     AST_BASE

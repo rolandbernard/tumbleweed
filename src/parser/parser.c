@@ -9,6 +9,74 @@
 #include "parser/parser.h"
 #include "parser/scanner.h"
 
+static int parseEscapeCode(char* data, int* length) {
+    int ret;
+    switch (data[0]) {
+    case 'a':
+        ret = '\a';
+        *length = 1;
+        break;
+    case 'b':
+        ret = '\b';
+        *length = 1;
+        break;
+    case 't':
+        ret = '\t';
+        *length = 1;
+        break;
+    case 'n':
+        ret = '\n';
+        *length = 1;
+        break;
+    case 'v':
+        ret = '\v';
+        *length = 1;
+        break;
+    case 'f':
+        ret = '\f';
+        *length = 1;
+        break;
+    case 'r':
+        ret = '\r';
+        *length = 1;
+        break;
+    case 'e':
+        ret = '\e';
+        *length = 1;
+        break;
+    case 'x':
+        if (isHexChar(data[1]) && isHexChar(data[2])) {
+            ret = (hexCharToInt(data[1]) << 4) | hexCharToInt(data[2]);
+            *length = 2;
+        } else {
+            ret = -1;
+        }
+        break;
+    case 'u':
+        if (isHexChar(data[1]) && isHexChar(data[2]) && isHexChar(data[3]) && isHexChar(data[4])) {
+            ret = (hexCharToInt(data[1]) << 12) | (hexCharToInt(data[2]) << 8) | (hexCharToInt(data[3]) << 4) | hexCharToInt(data[4]);
+            *length = 4;
+        } else {
+            ret = -1;
+        }
+        break;
+    case 'U':
+        if (isHexChar(data[1]) && isHexChar(data[2]) && isHexChar(data[3]) && isHexChar(data[4]) && isHexChar(data[5]) && isHexChar(data[6]) && isHexChar(data[7]) && isHexChar(data[8])) {
+            ret = (hexCharToInt(data[1]) << 28) | (hexCharToInt(data[2]) << 24) | (hexCharToInt(data[3]) << 20) | (hexCharToInt(data[4]) << 16);
+            ret = (hexCharToInt(data[5]) << 12) | (hexCharToInt(data[6]) << 8) | (hexCharToInt(data[7]) << 4) | hexCharToInt(data[8]);
+            *length = 8;
+        } else {
+            ret = -1;
+        }
+        break;
+    default:
+        ret = data[0];
+        *length = 1;
+        break;
+    }
+    return ret;
+}
+
 static bool expectToken(Scanner* scanner, TokenType type, ErrorContext* error_context, Token* token) {
     Token tmp_token;
     if (token == NULL) {
@@ -369,6 +437,56 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
             return PARSE_ERROR;
         }
         return ret;
+    } else if (consume(scanner, TOKEN_STRING_CONST, &first)) {
+        AstStringLiteral* ret = (AstStringLiteral*)malloc(sizeof(AstStringLiteral));
+        ret->type = AST_STRING_LITERAL;
+        ret->start = first.start;
+        ret->end = first.end;
+        ret->string_content = getStringCopyFromFile(scanner->file, first.start + 1, first.end - 1);
+        int new = 0;
+        int old = 0;
+        while (ret->string_content[old] != 0) {
+            if (ret->string_content[old] == '\\') {
+                int length;
+                int codepoint = parseEscapeCode(ret->string_content + old + 1, &length);
+                if (codepoint == -1) {
+                    addError(error_context, "Found an illegal escape code", getCurrentScannerPosition(scanner), ERROR);
+                } else {
+                    new += printUTF8(codepoint, ret->string_content + new);
+                    old += length;
+                }
+                old++;
+            } else {
+                ret->string_content[new] = ret->string_content[old];
+                new ++;
+                old++;
+            }
+        }
+        ret->string_content[new] = 0;
+        return (Ast*)ret;
+    } else if (consume(scanner, TOKEN_CHAR_CONST, &first)) {
+        int character;
+        char* content = getStringRefFromFile(scanner->file, first.start + 1);
+        if (first.start + 3 == first.end) {
+            character = (int)content[0];
+        } else if (content[0] == '\\') {
+            int length;
+            character = parseEscapeCode(content + 1, &length);
+            if (character == -1) {
+                addError(error_context, "Found an illegal escape code", getCurrentScannerPosition(scanner), ERROR);
+            } else if (first.start + 3 + length != first.end) {
+                addError(error_context, "A character literal can only contain one character", getCurrentScannerPosition(scanner), ERROR);
+            }
+        } else {
+            addError(error_context, "A character literal can only contain one character", getCurrentScannerPosition(scanner), ERROR);
+            character = (int)content[0];
+        }
+        AstCharacterLiteral* ret = (AstCharacterLiteral*)malloc(sizeof(AstCharacterLiteral));
+        ret->type = AST_CHARACTER_LITERAL;
+        ret->start = first.start;
+        ret->end = first.end;
+        ret->character = character;
+        return (Ast*)ret;
     }
     return NULL;
 }
@@ -829,6 +947,7 @@ static Ast* parseGlobalFunction(Scanner* scanner, ErrorContext* error_context) {
             }
             pushToArrayList(&parameters, (void*)parameter);
         }
+        bool is_vararg = accept(scanner, TOKEN_DBL_POINT);
         if (!expectToken(scanner, TOKEN_ROUND_CLOSE, error_context, NULL)) {
             goto failed;
         }
@@ -858,6 +977,7 @@ static Ast* parseGlobalFunction(Scanner* scanner, ErrorContext* error_context) {
             ret->end = body->end;
         }
         ret->is_extern = is_extern;
+        ret->is_vararg = is_vararg;
         ret->name = getStringCopyFromFile(scanner->file, name.start, name.end);
         ret->parameter_count = parameters.count;
         ret->parameters = (AstParameterDefinition**)parameters.data;

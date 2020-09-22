@@ -39,7 +39,7 @@ bool generateFunctionShell(AstFunctionDefinition* ast, File* file, LLVMMetadataR
         symbol->name = ast->name;
         symbol->ast = (Ast*)ast;
         if (!error) {
-            LLVMTypeRef function_type = LLVMFunctionType(return_type, parameter_types, ast->parameter_count, false);
+            LLVMTypeRef function_type = LLVMFunctionType(return_type, parameter_types, ast->parameter_count, ast->is_vararg);
             LLVMValueRef function = LLVMAddFunction(module, ast->name, function_type);
             if(args->debug && ast->body != NULL) {
                 LineInfo line_info = positionInFileToLineInfo(file, ast->start);
@@ -59,6 +59,7 @@ bool generateFunctionShell(AstFunctionDefinition* ast, File* file, LLVMMetadataR
             symbol->llvm_value = NULL;
         }
         symbol->llvm_return = NULL;
+        symbol->llvm_module = module;
         addSymbol(symbols, (void*)symbol);
     }
     free(parameter_types);
@@ -122,12 +123,13 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
 
 bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadataRef file_meta, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
+    Symbol tmp = {.llvm_module = module};
     LLVMValueRef value;
     if (ast->initial_value != NULL) {
         if (ast->is_extern) {
             addError(error_context, "Extern values can't be initialized", ast->start, ERROR);
         } else {
-            value = generateConst(ast->initial_value, args, symbols, error_context);
+            value = generateConst(ast->initial_value, &tmp, dibuilder, builder, args, symbols, error_context);
             if (value == NULL) {
                 error = true;
             }
@@ -147,7 +149,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadata
             if (variable_type == NULL) {
                 error = true;
             } else {
-                LLVMValueRef size = generateConst(ast_array->lhs, args, symbols, error_context);
+                LLVMValueRef size = generateConst(ast_array->lhs, &tmp, dibuilder, builder, args, symbols, error_context);
                 if (size == NULL) {
                     error = true;
                 } else {
@@ -170,7 +172,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadata
             if (variable_type == NULL) {
                 error = true;
             } else if (ast->initial_value != NULL && value != NULL) {
-                value = generateConstCastFromTo(ast->variable_type, value, variable_type, args, symbols, error_context);
+                value = generateConstCastFromTo(ast->initial_value, value, variable_type, args, symbols, error_context);
                 if(value == NULL) {
                     error = true;
                 }
@@ -302,7 +304,7 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             if (variable_type == NULL) {
                 error = true;
             } else {
-                LLVMValueRef size = generateConst(ast_array->lhs, args, symbols, error_context);
+                LLVMValueRef size = generateConst(ast_array->lhs, function, dibuilder, builder, args, symbols, error_context);
                 if (size == NULL) {
                     error = true;
                 } else {
@@ -325,7 +327,7 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             if (variable_type == NULL) {
                 error = true;
             } else if (ast->initial_value != NULL && value != NULL) {
-                value = generateCastFromTo(ast->variable_type, value, variable_type, function, builder, args, symbols, error_context);
+                value = generateCastFromTo(ast->initial_value, value, variable_type, function, builder, args, symbols, error_context);
                 if(value == NULL) {
                     error = true;
                 }
@@ -577,6 +579,20 @@ LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, Symbol* function, L
     return LLVMConstRealOfString(LLVMDoubleType(), ast->float_string);
 }
 
+LLVMValueRef generateValueStringLiteral(AstStringLiteral* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    LLVMValueRef value = LLVMConstString(ast->string_content, strlen(ast->string_content), false);
+    LLVMValueRef global = LLVMAddGlobal(function->llvm_module, LLVMTypeOf(value), "");
+    LLVMSetInitializer(global, value);
+    LLVMSetGlobalConstant(global, true);
+    LLVMSetLinkage(global, LLVMPrivateLinkage);
+    LLVMSetUnnamedAddress(global, LLVMGlobalUnnamedAddr);
+    return global;
+}
+
+LLVMValueRef generateValueCharacterLiteral(AstCharacterLiteral* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    return LLVMConstInt(LLVMIntType(64), ast->character, 0);
+}
+
 LLVMValueRef generateValueVariableAccess(AstVariableAccess* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     Symbol* symbol = getSymbol(symbols, ast->name);
     if(symbol == NULL) {
@@ -611,10 +627,10 @@ LLVMValueRef generateValueCall(AstCall* ast, Symbol* function, LLVMDIBuilderRef 
         }
     }
     if(!error) {
-        if(LLVMCountParams(func) == ast->parameter_count) {
+        if(LLVMCountParams(func) == ast->parameter_count || (LLVMIsFunctionVarArg(LLVMGetElementType(LLVMTypeOf(func))) && LLVMCountParams(func) <= ast->parameter_count)) {
             LLVMTypeRef* param_types = (LLVMTypeRef*)malloc(sizeof(LLVMTypeRef) * ast->parameter_count);
             LLVMGetParamTypes(LLVMGetElementType(LLVMTypeOf(func)), param_types);
-            for(int i = 0; i < ast->parameter_count; i++) {
+            for(int i = 0; i < ast->parameter_count && i < LLVMCountParams(func); i++) {
                 params[i] = generateCastFromTo(ast->parameters[i], params[i], param_types[i], function, builder, args, symbols, error_context);
                 if(params[i] == NULL) {
                     error = true;
@@ -683,6 +699,8 @@ static GenerateValueFunction generation_functions[] = {
     [AST_FOR_LOOP] = (GenerateValueFunction)generateValueForLoop,
     [AST_INTEGER_LITERAL] = (GenerateValueFunction)generateValueIntegerLiteral,
     [AST_FLOAT_LITERAL] = (GenerateValueFunction)generateValueFloatLiteral,
+    [AST_STRING_LITERAL] = (GenerateValueFunction)generateValueStringLiteral,
+    [AST_CHARACTER_LITERAL] = (GenerateValueFunction)generateValueCharacterLiteral,
     [AST_VARIABLE_ACCESS] = (GenerateValueFunction)generateValueVariableAccess,
     [AST_CALL] = (GenerateValueFunction)generateValueCall,
     [AST_INDEX] = (GenerateValueFunction)generateValueIndex,

@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "codegen/const.h"
+#include "codegen/general.h"
 #include "codegen/casts.h"
 
 static int llvm_float_type_to_length[] = {
@@ -18,9 +19,9 @@ static bool isAFloat(LLVMTypeRef type) {
             LLVMGetTypeKind(type) == LLVMFP128TypeKind || LLVMGetTypeKind(type) == LLVMPPC_FP128TypeKind;
 }
 
-static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Args* args, SymbolTable* symbols, ErrorContext* error_context, LLVMValueRef* left, LLVMValueRef* right) {
+static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context, LLVMValueRef* left, LLVMValueRef* right) {
     bool error = false;
-    *left = generateConst(lhs, args, symbols, error_context);
+    *left = generateConst(lhs, function, dibuilder, builder, args, symbols, error_context);
     if(*left == NULL) {
         error = true;
     } else {
@@ -31,7 +32,7 @@ static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Args* args, 
             error = true;
         }
     }
-    *right = generateConst(rhs, args, symbols, error_context);
+    *right = generateConst(rhs, function, dibuilder, builder, args, symbols, error_context);
     if(*right == NULL) {
         error = true;
     } else {
@@ -68,9 +69,9 @@ static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Args* args, 
     return error;
 }
 
-static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Args* args, SymbolTable* symbols, ErrorContext* error_context, LLVMValueRef* left, LLVMValueRef* right) {
+static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context, LLVMValueRef* left, LLVMValueRef* right) {
     bool error = false;
-    *left = generateConst(lhs, args, symbols, error_context);
+    *left = generateConst(lhs, function, dibuilder, builder, args, symbols, error_context);
     if(*left == NULL) {
         error = true;
     } else {
@@ -79,7 +80,7 @@ static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Args* args, SymbolTab
             error = true;
         }
     }
-    *right = generateConst(rhs, args, symbols, error_context);
+    *right = generateConst(rhs, function, dibuilder, builder, args, symbols, error_context);
     if(*right == NULL) {
         error = true;
     } else {
@@ -114,9 +115,9 @@ static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Args* args, SymbolTab
     return error;
 } 
 
-static bool generateOperandsInt(Ast* lhs, Ast* rhs, Args* args, SymbolTable* symbols, ErrorContext* error_context, LLVMValueRef* left, LLVMValueRef* right) {
+static bool generateOperandsInt(Ast* lhs, Ast* rhs, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context, LLVMValueRef* left, LLVMValueRef* right) {
     bool error = false;
-    *left = generateConst(lhs, args, symbols, error_context);
+    *left = generateConst(lhs, function, dibuilder, builder, args, symbols, error_context);
     if(*left == NULL) {
         error = true;
     } else {
@@ -125,7 +126,7 @@ static bool generateOperandsInt(Ast* lhs, Ast* rhs, Args* args, SymbolTable* sym
             error = true;
         }
     }
-    *right = generateConst(rhs, args, symbols, error_context);
+    *right = generateConst(rhs, function, dibuilder, builder, args, symbols, error_context);
     if(*right == NULL) {
         error = true;
     } else {
@@ -160,9 +161,9 @@ static bool generateOperandsInt(Ast* lhs, Ast* rhs, Args* args, SymbolTable* sym
     return error;
 } 
 
-LLVMValueRef generateConstLazyAnd(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstLazyAnd(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef condition_lhs = generateConst(ast->lhs, args, symbols, error_context);
+    LLVMValueRef condition_lhs = generateConst(ast->lhs, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_lhs_bool = NULL;
     if (condition_lhs == NULL) {
         error = true;
@@ -192,7 +193,7 @@ LLVMValueRef generateConstLazyAnd(AstBinaryOperation* ast, Args* args, SymbolTab
             break;
         }
     }
-    LLVMValueRef condition_rhs = generateConst(ast->rhs, args, symbols, error_context);
+    LLVMValueRef condition_rhs = generateConst(ast->rhs, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_rhs_bool = NULL;
     if (condition_rhs == NULL) {
         error = true;
@@ -228,9 +229,9 @@ LLVMValueRef generateConstLazyAnd(AstBinaryOperation* ast, Args* args, SymbolTab
     return NULL;
 }
 
-LLVMValueRef generateConstLazyOr(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstLazyOr(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef condition_lhs = generateConst(ast->lhs, args, symbols, error_context);
+    LLVMValueRef condition_lhs = generateConst(ast->lhs, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_lhs_bool = NULL;
     if (condition_lhs == NULL) {
         error = true;
@@ -260,7 +261,7 @@ LLVMValueRef generateConstLazyOr(AstBinaryOperation* ast, Args* args, SymbolTabl
             break;
         }
     }
-    LLVMValueRef condition_rhs = generateConst(ast->rhs, args, symbols, error_context);
+    LLVMValueRef condition_rhs = generateConst(ast->rhs, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_rhs_bool = NULL;
     if (condition_rhs == NULL) {
         error = true;
@@ -296,10 +297,10 @@ LLVMValueRef generateConstLazyOr(AstBinaryOperation* ast, Args* args, SymbolTabl
     return NULL;
 }
 
-LLVMValueRef generateConstEqual(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstEqual(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (isAFloat(LLVMTypeOf(right))) {
             return LLVMConstFCmp(LLVMRealOEQ, left, right);
@@ -310,10 +311,10 @@ LLVMValueRef generateConstEqual(AstBinaryOperation* ast, Args* args, SymbolTable
     return NULL;
 }
 
-LLVMValueRef generateConstUnequal(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstUnequal(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (isAFloat(LLVMTypeOf(right))) {
             return LLVMConstFCmp(LLVMRealONE, left, right);
@@ -324,10 +325,10 @@ LLVMValueRef generateConstUnequal(AstBinaryOperation* ast, Args* args, SymbolTab
     return NULL;
 }
 
-LLVMValueRef generateConstGreaterEqual(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstGreaterEqual(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (isAFloat(LLVMTypeOf(right))) {
             return LLVMConstFCmp(LLVMRealOGE, left, right);
@@ -338,10 +339,10 @@ LLVMValueRef generateConstGreaterEqual(AstBinaryOperation* ast, Args* args, Symb
     return NULL;
 }
 
-LLVMValueRef generateConstLessEqual(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstLessEqual(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (isAFloat(LLVMTypeOf(right))) {
             return LLVMConstFCmp(LLVMRealOLE, left, right);
@@ -352,10 +353,10 @@ LLVMValueRef generateConstLessEqual(AstBinaryOperation* ast, Args* args, SymbolT
     return NULL;
 }
 
-LLVMValueRef generateConstGreater(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstGreater(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (isAFloat(LLVMTypeOf(right))) {
             return LLVMConstFCmp(LLVMRealOGT, left, right);
@@ -366,10 +367,10 @@ LLVMValueRef generateConstGreater(AstBinaryOperation* ast, Args* args, SymbolTab
     return NULL;
 }
 
-LLVMValueRef generateConstLess(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstLess(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloatOrPointer(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (isAFloat(LLVMTypeOf(right))) {
             return LLVMConstFCmp(LLVMRealOLT, left, right);
@@ -380,60 +381,60 @@ LLVMValueRef generateConstLess(AstBinaryOperation* ast, Args* args, SymbolTable*
     return NULL;
 }
 
-LLVMValueRef generateConstOr(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstOr(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsInt(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsInt(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         return LLVMConstOr(left, right);
     }
     return NULL;
 }
 
-LLVMValueRef generateConstAnd(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstAnd(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsInt(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsInt(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         return LLVMConstAnd(left, right);
     }
     return NULL;
 }
 
-LLVMValueRef generateConstXor(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstXor(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsInt(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsInt(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         return LLVMConstXor(left, right);
     }
     return NULL;
 }
 
-LLVMValueRef generateConstShiftRight(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstShiftRight(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsInt(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsInt(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         return LLVMConstLShr(left, right);
     }
     return NULL;
 }
 
-LLVMValueRef generateConstShiftLeft(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstShiftLeft(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsInt(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsInt(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         return LLVMConstShl(left, right);
     }
     return NULL;
 }
 
-LLVMValueRef generateConstAdd(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstAdd(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (LLVMGetTypeKind((LLVMTypeOf(right))) == LLVMIntegerTypeKind) {
             return LLVMConstAdd(left, right);
@@ -444,10 +445,10 @@ LLVMValueRef generateConstAdd(AstBinaryOperation* ast, Args* args, SymbolTable* 
     return NULL;
 }
 
-LLVMValueRef generateConstSubtract(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstSubtract(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (LLVMGetTypeKind((LLVMTypeOf(right))) == LLVMIntegerTypeKind) {
             return LLVMConstSub(left, right);
@@ -458,10 +459,10 @@ LLVMValueRef generateConstSubtract(AstBinaryOperation* ast, Args* args, SymbolTa
     return NULL;
 }
 
-LLVMValueRef generateConstMultiply(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstMultiply(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (LLVMGetTypeKind((LLVMTypeOf(right))) == LLVMIntegerTypeKind) {
             return LLVMConstMul(left, right);
@@ -472,10 +473,10 @@ LLVMValueRef generateConstMultiply(AstBinaryOperation* ast, Args* args, SymbolTa
     return NULL;
 }
 
-LLVMValueRef generateConstDivide(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstDivide(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsIntOrFloat(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         if (LLVMGetTypeKind((LLVMTypeOf(right))) == LLVMIntegerTypeKind) {
             return LLVMConstSDiv(left, right);
@@ -486,26 +487,26 @@ LLVMValueRef generateConstDivide(AstBinaryOperation* ast, Args* args, SymbolTabl
     return NULL;
 }
 
-LLVMValueRef generateConstRemainder(AstBinaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstRemainder(AstBinaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef left;
     LLVMValueRef right;
-    bool error = generateOperandsInt(ast->lhs, ast->rhs, args, symbols, error_context, &left, &right);
+    bool error = generateOperandsInt(ast->lhs, ast->rhs, function, dibuilder, builder, args, symbols, error_context, &left, &right);
     if(!error) {
         return LLVMConstSRem(left, right);
     }
     return NULL;
 }
 
-LLVMValueRef generateConstPositive(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    LLVMValueRef value = generateConst(ast->operand, args, symbols, error_context);
+LLVMValueRef generateConstPositive(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    LLVMValueRef value = generateConst(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
         return value;
     }
     return NULL;
 }
 
-LLVMValueRef generateConstNegative(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    LLVMValueRef value = generateConst(ast->operand, args, symbols, error_context);
+LLVMValueRef generateConstNegative(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    LLVMValueRef value = generateConst(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
         if (LLVMGetTypeKind((LLVMTypeOf(value))) != LLVMIntegerTypeKind && !isAFloat(LLVMTypeOf(value))) {            
             addError(error_context, "The operation only works for integers and floats", ast->operand->start, ERROR);
@@ -520,8 +521,8 @@ LLVMValueRef generateConstNegative(AstUnaryOperation* ast, Args* args, SymbolTab
     return NULL;
 }
 
-LLVMValueRef generateConstNot(AstUnaryOperation* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    LLVMValueRef value = generateConst(ast->operand, args, symbols, error_context);
+LLVMValueRef generateConstNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    LLVMValueRef value = generateConst(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
         if (LLVMGetTypeKind((LLVMTypeOf(value))) != LLVMIntegerTypeKind &&
             LLVMGetTypeKind((LLVMTypeOf(value))) != LLVMPointerTypeKind && !isAFloat(LLVMTypeOf(value))) {            
@@ -537,33 +538,7 @@ LLVMValueRef generateConstNot(AstUnaryOperation* ast, Args* args, SymbolTable* s
     return NULL;
 }
 
-LLVMValueRef generateConstIntegerLiteral(AstIntegerLiteral* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    int base = 10;
-    char* str = ast->integer_string;
-    int len = strlen(str);
-    if(len > 2) {
-        if(strncmp(str, "0b", 2) == 0) {
-            base = 2;
-            str += 2;
-            len -= 2;
-        } else if(strncmp(str, "0o", 2) == 0) {
-            base = 8;
-            str += 2;
-            len -= 2;
-        } else if(strncmp(str, "0x", 2) == 0) {
-            base = 16;
-            str += 2;
-            len -= 2;
-        }
-    }
-    return LLVMConstIntOfStringAndSize(LLVMIntType(64), str, len, base);
-}
-
-LLVMValueRef generateConstFloatLiteral(AstFloatLiteral* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    return LLVMConstRealOfString(LLVMDoubleType(), ast->float_string);
-}
-
-LLVMValueRef generateConstVariableAccess(AstVariableAccess* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConstVariableAccess(AstVariableAccess* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     Symbol* symbol = getSymbol(symbols, ast->name);
     if(symbol == NULL) {
         addErrorf(error_context, ast->start, ERROR, "Undefined symbol '%s'", ast->name);
@@ -575,7 +550,7 @@ LLVMValueRef generateConstVariableAccess(AstVariableAccess* ast, Args* args, Sym
     }
 }
 
-typedef LLVMValueRef (*GenerateConstFunction)(Ast* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+typedef LLVMValueRef (*GenerateConstFunction)(Ast* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 static GenerateConstFunction generation_functions[] = {
     [AST_ROOT] = (GenerateConstFunction)NULL,
@@ -585,8 +560,10 @@ static GenerateConstFunction generation_functions[] = {
     [AST_VARIABLE_DEFINITION] = (GenerateConstFunction)NULL,
     [AST_IF_ELSE] = (GenerateConstFunction)NULL,
     [AST_FOR_LOOP] = (GenerateConstFunction)NULL,
-    [AST_INTEGER_LITERAL] = (GenerateConstFunction)generateConstIntegerLiteral,
-    [AST_FLOAT_LITERAL] = (GenerateConstFunction)generateConstFloatLiteral,
+    [AST_INTEGER_LITERAL] = (GenerateConstFunction)generateValueIntegerLiteral,
+    [AST_FLOAT_LITERAL] = (GenerateConstFunction)generateValueFloatLiteral,
+    [AST_STRING_LITERAL] = (GenerateConstFunction)generateValueStringLiteral,
+    [AST_CHARACTER_LITERAL] = (GenerateConstFunction)generateValueCharacterLiteral,
     [AST_VARIABLE_ACCESS] = (GenerateConstFunction)generateConstVariableAccess,
     [AST_CALL] = (GenerateConstFunction)NULL,
     [AST_INDEX] = (GenerateConstFunction)NULL,
@@ -639,7 +616,7 @@ static GenerateConstFunction generation_functions[] = {
     [AST_ADDRESS] = (GenerateConstFunction)NULL,
 };
 
-LLVMValueRef generateConst(Ast* ast, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+LLVMValueRef generateConst(Ast* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     if(ast == NULL) {
         return NULL;
     }
@@ -648,6 +625,6 @@ LLVMValueRef generateConst(Ast* ast, Args* args, SymbolTable* symbols, ErrorCont
         addError(error_context, "Unexpected expression", ast->start, ERROR);
         return NULL;
     } else {
-        return generation_function(ast, args, symbols, error_context);
+        return generation_function(ast, function, dibuilder, builder, args, symbols, error_context);
     }
 }

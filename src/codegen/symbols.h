@@ -11,6 +11,7 @@ typedef struct {
     const char* name;
     Ast* ast;
     LLVMValueRef llvm_value;
+    LLVMModuleRef llvm_module;
     // Only used for functions
     LLVMValueRef llvm_return;
     LLVMMetadataRef llvm_difunc;
