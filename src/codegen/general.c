@@ -124,7 +124,7 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
 bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadataRef file_meta, LLVMModuleRef module, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
     Symbol tmp = {.llvm_module = module};
-    LLVMValueRef value;
+    LLVMValueRef value = NULL;
     if (ast->initial_value != NULL) {
         if (ast->is_extern) {
             addError(error_context, "Extern values can't be initialized", ast->start, ERROR);
@@ -135,7 +135,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadata
             }
         }
     }
-    LLVMTypeRef variable_type;
+    LLVMTypeRef variable_type = NULL;
     if (ast->variable_type == NULL) {
         variable_type = LLVMTypeOf(value);
     } else {
@@ -275,7 +275,7 @@ bool generateRoot(AstRoot* ast, File* file, LLVMMetadataRef file_meta, LLVMModul
 
 LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     bool error = false;
-    LLVMValueRef value;
+    LLVMValueRef value = NULL;
     if (ast->initial_value != NULL) {
         if (ast->is_extern) {
             addError(error_context, "Extern variables can't be inside functions", ast->start, ERROR);
@@ -288,7 +288,7 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             }
         }
     }
-    LLVMTypeRef variable_type;
+    LLVMTypeRef variable_type = NULL;
     if (ast->variable_type == NULL) {
         if(value != NULL) {
             variable_type = LLVMTypeOf(value);

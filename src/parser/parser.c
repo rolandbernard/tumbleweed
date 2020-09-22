@@ -644,7 +644,7 @@ static Ast* parseExpressionLevelMultiplicative(Scanner* scanner, ErrorContext* e
     Ast* ret = parseExpressionLevelUnary(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
         while (test(scanner, 0, TOKEN_STAR) || test(scanner, 0, TOKEN_SLASH) || test(scanner, 0, TOKEN_PERCENT)) {
-            AstType type;
+            AstType type = AST_NONE;
             if (accept(scanner, TOKEN_STAR)) {
                 type = AST_MULTIPLY;
             } else if (accept(scanner, TOKEN_SLASH)) {
@@ -680,7 +680,7 @@ static Ast* parseExpressionLevelAdditive(Scanner* scanner, ErrorContext* error_c
     Ast* ret = parseExpressionLevelMultiplicative(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
         while (test(scanner, 0, TOKEN_PLUS) || test(scanner, 0, TOKEN_MINUS)) {
-            AstType type;
+            AstType type = AST_NONE;
             if (accept(scanner, TOKEN_PLUS)) {
                 type = AST_ADD;
             } else if (accept(scanner, TOKEN_MINUS)) {
@@ -714,7 +714,7 @@ static Ast* parseExpressionLevelShift(Scanner* scanner, ErrorContext* error_cont
     Ast* ret = parseExpressionLevelAdditive(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
         while (test(scanner, 0, TOKEN_DBL_LES) || test(scanner, 0, TOKEN_DBL_GTR)) {
-            AstType type;
+            AstType type = AST_NONE;
             if (accept(scanner, TOKEN_DBL_LES)) {
                 type = AST_SHIFT_LEFT;
             } else if (accept(scanner, TOKEN_DBL_GTR)) {
@@ -832,7 +832,7 @@ static Ast* parseExpressionLevelRelational(Scanner* scanner, ErrorContext* error
     Ast* ret = parseExpressionLevelOr(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
         while (test(scanner, 0, TOKEN_GTR) || test(scanner, 0, TOKEN_LES) || test(scanner, 0, TOKEN_GTR_EQU) || test(scanner, 0, TOKEN_LES_EQU) || test(scanner, 0, TOKEN_DBL_EQU) || test(scanner, 0, TOKEN_EXCL_EQU)) {
-            AstType type;
+            AstType type = AST_NONE;
             if (accept(scanner, TOKEN_GTR)) {
                 type = AST_GREATER;
             } else if (accept(scanner, TOKEN_LES)) {

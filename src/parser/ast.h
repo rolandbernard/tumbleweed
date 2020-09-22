@@ -9,6 +9,8 @@
     Position end;
 
 typedef enum {
+    AST_NONE,
+    
     AST_ROOT,
     AST_CODE_BLOCK,
     AST_PARAMETER_DEFINITION,
