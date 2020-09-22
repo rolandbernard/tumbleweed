@@ -9,7 +9,7 @@ LINK=g++
 LLVMCONF=llvm-config
 DFLAGS=-g -O0 -fsanitize=address,undefined
 RFLAGS=-O3
-CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -Wall $(DFLAGS)
+CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -Wall $(RFLAGS)
 LIBS=`$(LLVMCONF) --ldflags --libs --link-static` -lpthread -lncurses -ldl -lz
 
 _SRC=$(wildcard $(SDIR)/*/*.c) $(wildcard $(SDIR)/*.c)
