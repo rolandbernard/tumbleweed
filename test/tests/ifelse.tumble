@@ -1,5 +1,5 @@
 
-main() {
+main() i32 {
     if 1 {
         if 0 {
             return 2;

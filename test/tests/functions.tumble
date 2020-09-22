@@ -1,13 +1,13 @@
 
-add(a: s32, b: s32) s32 {
+add(a: i32, b: i32) i32 {
     return a + b;
 }
 
-addmul(a: s32, b: s32, c: s32) s32 {
+addmul(a: i32, b: i32, c: i32) i32 {
     return add(a, b) * c;
 }
 
-main() {
+main() i32 {
     if add(5, 3) == 8 {
         if addmul(2, 3, 5) == 25 {
             return 0
