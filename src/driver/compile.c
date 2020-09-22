@@ -167,12 +167,28 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         LLVMDisposeMessage(error_msg);
     } else {
         if (linked_module != NULL && getErrorCount(error_context) == 0) {
-            LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(target, triple, "", "", LLVMCodeGenLevelDefault, LLVMRelocPIC, LLVMCodeModelDefault);
+            LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelDefault;
+            switch (max(args->size_opt, args->speed_opt)) {
+            case 0:
+                opt_level = LLVMCodeGenLevelNone;
+                break;
+            case 1:
+                opt_level = LLVMCodeGenLevelLess;
+                break;
+            case 2:
+                opt_level = LLVMCodeGenLevelDefault;
+                break;
+            case 3:
+                opt_level = LLVMCodeGenLevelAggressive;
+                break;
+            }
+            LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(target, triple, "", "", opt_level, LLVMRelocPIC, LLVMCodeModelDefault);
             LLVMTargetDataRef data_layout = LLVMCreateTargetDataLayout(target_machine);
             LLVMPassManagerRef module_pass_manager = LLVMCreatePassManager();
             LLVMPassManagerBuilderRef pass_manager_builder = LLVMPassManagerBuilderCreate();
             LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, args->speed_opt);
             LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, args->size_opt);
+            LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, max(0, args->speed_opt - args->size_opt) * 500);
             LLVMAddAnalysisPasses(target_machine, module_pass_manager);
             LLVMAddVerifierPass(module_pass_manager);
             LLVMAddCFGSimplificationPass(module_pass_manager);
