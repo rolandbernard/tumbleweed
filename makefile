@@ -7,8 +7,10 @@ SDIR=./src
 CC=gcc
 LINK=g++
 LLVMCONF=llvm-config
-CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -O0 -g -Wall -fsanitize=address,undefined
-LIBS=`$(LLVMCONF) --ldflags --libs --link-static` -lpthread -lncurses
+DFLAGS=-g -O0 -fsanitize=address,undefined
+RFLAGS=-O3
+CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -Wall $(DFLAGS)
+LIBS=`$(LLVMCONF) --ldflags --libs --link-static` -lpthread -lncurses -ldl -lz
 
 _SRC=$(wildcard $(SDIR)/*/*.c) $(wildcard $(SDIR)/*.c)
 OBJ=$(patsubst $(SDIR)/%.c,$(ODIR)/%.o,$(_SRC))
@@ -35,9 +37,9 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	
 .PHONY: clean
 clean:
-	rm -f $(ODIR)/*
+	rm -fr $(ODIR)/*
 
 .PHONY: cleanall
 cleanall:
-	rm -f $(ODIR)/* $(BDIR)/*
+	rm -fr $(ODIR)/* $(BDIR)/*
 
