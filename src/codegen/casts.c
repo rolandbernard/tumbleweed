@@ -15,7 +15,7 @@ LLVMValueRef generateCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef dest, 
         if(LLVMGetTypeKind(src) == LLVMPointerTypeKind) {
             return LLVMBuildPointerCast(builder, value, dest, "");
         } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind) {
-            return LLVMBuildSExt(builder, value, dest, "");
+            return LLVMBuildIntCast2(builder, value, dest, true, "");
         } else if(isAFloat(src)) {
             return LLVMBuildFPCast(builder, value, dest, "");
         }
@@ -42,7 +42,7 @@ LLVMValueRef generateConstCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef d
         if(LLVMGetTypeKind(src) == LLVMPointerTypeKind) {
             return LLVMConstPointerCast(value, dest);
         } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind) {
-            return LLVMConstSExt(value, dest);
+            return LLVMConstIntCast(value, dest, true);
         } else if(LLVMGetTypeKind(src) == LLVMFloatTypeKind || LLVMGetTypeKind(src) == LLVMDoubleTypeKind || 
             LLVMGetTypeKind(src) == LLVMHalfTypeKind || LLVMGetTypeKind(src) == LLVMX86_FP80TypeKind ||
             LLVMGetTypeKind(src) == LLVMFP128TypeKind) {
