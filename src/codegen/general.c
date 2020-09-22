@@ -755,8 +755,13 @@ LLVMValueRef generateValueInFunction(Ast* ast, Symbol* function, LLVMDIBuilderRe
         if(args->debug) {
             LineInfo line_info = positionInFileToLineInfo(function->file, ast->start);
             LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(LLVMGetGlobalContext(), line_info.line, line_info.column, function->llvm_difunc, NULL);
+            LLVMMetadataRef prev = LLVMGetCurrentDebugLocation2(builder);
             LLVMSetCurrentDebugLocation2(builder, loc);
+            LLVMValueRef ret = generation_function(ast, function, dibuilder, builder, args, symbols, error_context);
+            LLVMSetCurrentDebugLocation2(builder, prev);
+            return ret;
+        } else {
+            return generation_function(ast, function, dibuilder, builder, args, symbols, error_context);
         }
-        return generation_function(ast, function, dibuilder, builder, args, symbols, error_context);
     }
 }
