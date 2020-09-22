@@ -15,3 +15,13 @@ $ cd tumbleweed
 $ make install
 ```
 
+## Hello world
+The "Hello world"-program for this language looks like this:
+```
+extern printf(fmt: *i8, ..) i32;
+
+main() i32 {
+    printf("Hello world!\n");
+    return 0;
+}
+```
