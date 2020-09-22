@@ -1,7 +1,7 @@
 
 PARAMS=-O3
 LIBS=-lc
-COMPILER=../build/bin/tumble
+COMPILER=$(dirname $0)/../build/bin/tumble
 
 passed_count=0
 failed_count=0
