@@ -18,9 +18,13 @@ bool isHexChar(char c);
 
 int hexCharToInt(char c);
 
+char intToHexChar(int n);
+
 int parseUTF8(char* c, int* length);
 
 int printUTF8(int c, char* out);
+
+void uuidv4(char* ret);
 
 #define COMPILER_NAME "tumbleweed 0.0.1"
 

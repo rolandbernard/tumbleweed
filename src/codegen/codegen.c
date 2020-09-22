@@ -6,17 +6,9 @@
 #include "codegen/general.h"
 #include "codegen/symbols.h"
 
-void initCodegen() {
-    LLVMInitializeCore(LLVMGetGlobalPassRegistry());
-}
-
-void deinitCodegen() {
-    LLVMShutdown();
-}
-
 LLVMModuleRef generateModuleFromAst(Ast* ast, File* file, Args* args, ErrorContext* error_context) {
     if(ast != NULL && ast->type == AST_ROOT) {
-        LLVMModuleRef module = LLVMModuleCreateWithName(file->path);
+        LLVMModuleRef module = LLVMModuleCreateWithName(file->filename);
         LLVMSetSourceFileName(module, file->filename, strlen(file->filename));
         LLVMBuilderRef builder = LLVMCreateBuilder();
         LLVMDIBuilderRef dibuilder = NULL;

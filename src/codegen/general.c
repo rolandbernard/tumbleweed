@@ -41,7 +41,7 @@ bool generateFunctionShell(AstFunctionDefinition* ast, File* file, LLVMMetadataR
         if (!error) {
             LLVMTypeRef function_type = LLVMFunctionType(return_type, parameter_types, ast->parameter_count, false);
             LLVMValueRef function = LLVMAddFunction(module, ast->name, function_type);
-            if(args->debug) {
+            if(args->debug && ast->body != NULL) {
                 LineInfo line_info = positionInFileToLineInfo(file, ast->start);
                 LLVMMetadataRef* parameter_type_meta = (LLVMMetadataRef*)malloc(sizeof(LLVMMetadataRef) * ast->parameter_count);
                 for (int i = 0; i < ast->parameter_count; i++) {
@@ -190,8 +190,10 @@ bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadata
             LLVMValueRef variable = LLVMAddGlobal(module, variable_type, ast->name);
             if (ast->initial_value != NULL) {
                 LLVMSetInitializer(variable, value);
+            } else if(!ast->is_extern) {
+                LLVMSetInitializer(variable, LLVMConstNull(variable_type));
             }
-            if(args->debug) {
+            if(args->debug && !ast->is_extern) {
                 LineInfo line_info = positionInFileToLineInfo(file, ast->start);
                 LLVMMetadataRef type_meta = generateTypeMeta(ast->variable_type, dibuilder, args);
                 LLVMMetadataRef variable_meta = LLVMDIBuilderCreateGlobalVariableExpression(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, file_meta, line_info.line, type_meta, false, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), NULL, 0);

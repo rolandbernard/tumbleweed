@@ -28,7 +28,7 @@ static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Symbol* func
         *left = generateExtractFromVariable(*left, function, builder, args, symbols, error_context);
         if (LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMIntegerTypeKind &&
             LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMPointerTypeKind &&
-            !isAFloat(LLVMTypeOf(*right))) {            
+            !isAFloat(LLVMTypeOf(*left))) {            
             addError(error_context, "The operation only works for integers, pointers and floats", lhs->start, ERROR);
             error = true;
         }
@@ -39,7 +39,7 @@ static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Symbol* func
     } else {
         *right = generateExtractFromVariable(*right, function, builder, args, symbols, error_context);
         if (LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMIntegerTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMPointerTypeKind &&
+            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMPointerTypeKind &&
             !isAFloat(LLVMTypeOf(*right))) {            
             addError(error_context, "The operation only works for integers, pointers and floats", lhs->start, ERROR);
             error = true;
@@ -78,12 +78,7 @@ static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Symbol* function, LLV
         error = true;
     } else {
         *left = generateExtractFromVariable(*left, function, builder, args, symbols, error_context);
-        if (LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMIntegerTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMHalfTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMFloatTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMDoubleTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMX86_FP80TypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMFP128TypeKind) {            
+        if (LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMIntegerTypeKind && !isAFloat(LLVMTypeOf(*left))) {            
             addError(error_context, "The operation only works for integers and floats", lhs->start, ERROR);
             error = true;
         }
@@ -93,12 +88,7 @@ static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Symbol* function, LLV
         error = true;
     } else {
         *right = generateExtractFromVariable(*right, function, builder, args, symbols, error_context);
-        if (LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMIntegerTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMHalfTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMFloatTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMDoubleTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMX86_FP80TypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMFP128TypeKind) {            
+        if (LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMIntegerTypeKind && !isAFloat(LLVMTypeOf(*right))) {            
             addError(error_context, "The operation only works for integers and floats", rhs->start, ERROR);
             error = true;
         }

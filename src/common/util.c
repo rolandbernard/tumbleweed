@@ -1,4 +1,6 @@
 
+#include <stdio.h>
+
 #include "common/util.h"
 
 bool isHexChar(char c) {
@@ -14,6 +16,15 @@ int hexCharToInt(char c) {
         return (int)(c - 'A') + 10;
     }
     return -1;
+}
+
+char intToHexChar(int n) {
+    if(n >= 0 && n < 10) {
+        return '0' + n;
+    } else if(n >= 10 && n < 16) {
+        return 'a' + n - 10;
+    }
+    return 0;
 }
 
 int parseUTF8(char* c, int* length) {
@@ -59,5 +70,16 @@ int printUTF8(int c, char* out) {
             out[j] = 0x80 | ((c >> ((i - j - 1) * 6)) & 0x3f);
         }
         return i;
+    }
+}
+
+void uuidv4(char* ret) {
+    FILE* file = fopen("/dev/urandom", "rb");
+    uint8_t random[16];
+    fread(&random, 1, 16, file);
+    fclose(file);
+    for(int i = 0; i < 16; i++) {
+        ret[2*i] = intToHexChar(random[i] >> 4);
+        ret[2*i + 1] = intToHexChar(random[i] & 0x0F);
     }
 }

@@ -16,6 +16,7 @@ typedef enum {
 
 typedef struct {
     bool help;
+    bool version;
     bool debug;
     int size_opt;
     int speed_opt;

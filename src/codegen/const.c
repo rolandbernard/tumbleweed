@@ -26,7 +26,7 @@ static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Args* args, 
     } else {
         if (LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMIntegerTypeKind &&
             LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMPointerTypeKind &&
-            !isAFloat(LLVMTypeOf(*right))) {            
+            !isAFloat(LLVMTypeOf(*left))) {            
             addError(error_context, "The operation only works for integers, pointers and floats", lhs->start, ERROR);
             error = true;
         }
@@ -36,7 +36,7 @@ static bool generateOperandsIntOrFloatOrPointer(Ast* lhs, Ast* rhs, Args* args, 
         error = true;
     } else {
         if (LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMIntegerTypeKind &&
-            LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMPointerTypeKind &&
+            LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMPointerTypeKind &&
             !isAFloat(LLVMTypeOf(*right))) {            
             addError(error_context, "The operation only works for integers, pointers and floats", lhs->start, ERROR);
             error = true;
@@ -74,7 +74,7 @@ static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Args* args, SymbolTab
     if(*left == NULL) {
         error = true;
     } else {
-        if (LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMIntegerTypeKind && isAFloat((LLVMTypeOf(*left)))) {            
+        if (LLVMGetTypeKind((LLVMTypeOf(*left))) != LLVMIntegerTypeKind && !isAFloat((LLVMTypeOf(*left)))) {            
             addError(error_context, "The operation only works for integers and floats", lhs->start, ERROR);
             error = true;
         }
@@ -83,7 +83,7 @@ static bool generateOperandsIntOrFloat(Ast* lhs, Ast* rhs, Args* args, SymbolTab
     if(*right == NULL) {
         error = true;
     } else {
-        if (LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMIntegerTypeKind && isAFloat((LLVMTypeOf(*left)))) {            
+        if (LLVMGetTypeKind((LLVMTypeOf(*right))) != LLVMIntegerTypeKind && !isAFloat((LLVMTypeOf(*right)))) {            
             addError(error_context, "The operation only works for integers and floats", lhs->start, ERROR);
             error = true;
         }

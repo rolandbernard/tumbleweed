@@ -7,6 +7,7 @@
 
 const Args default_args = {
     .help = false,
+    .version = false,
     .debug = false,
     .size_opt = 0,
     .speed_opt = 1,
@@ -34,6 +35,8 @@ void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
     for(int i = 1; i < argc; i++) {
         if(argv[i][0] == '-') {
             if(strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+                args->help = true;
+            } else if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
                 args->help = true;
             } else if(strcmp(argv[i], "-g") == 0 || strcmp(argv[i], "--debug") == 0) {
                 args->debug = true;
@@ -130,6 +133,7 @@ void printHelpText(FILE* file, int argc, char** argv) {
     fprintf(file, "    -o, --output FILE       Output the result to the given file.\n");
     fprintf(file, "    -l NAME                 Add the given library to the linker.\n");
     fprintf(file, "    -L PATH                 Add the given path to the possible library locations.\n");
+    fprintf(file, "    -v, --version           Output the compiler version\n");
 }  
 
 void freeArgs(Args* args) {

@@ -40,9 +40,9 @@ void addError(ErrorContext* context, const char* message, Position position, Err
 }
 
 static const char* error_level[] = {
-    [ERROR]   = "\e[31merror\e[m",
-    [WARNING] = "\e[35mwarning\e[m",
-    [NOTE]    = "\e[36mnote\e[m",
+    [ERROR]   = "\e[31;1merror\e[m",
+    [WARNING] = "\e[35;1mwarning\e[m",
+    [NOTE]    = "\e[36;1mnote\e[m",
 };
 
 void printErrors(FILE* file, ErrorContext* context, FileSet* file_set) {

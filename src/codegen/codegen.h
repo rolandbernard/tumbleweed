@@ -8,10 +8,6 @@
 #include "driver/file.h"
 #include "driver/error.h"
 
-void initCodegen();
-
-void deinitCodegen();
-
 LLVMModuleRef generateModuleFromAst(Ast* ast, File* file, Args* args, ErrorContext* error_context);
 
 #endif
