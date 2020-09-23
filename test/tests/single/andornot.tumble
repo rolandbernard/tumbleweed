@@ -12,7 +12,7 @@ main() i32 {
     if !(1 || 0) {
         return 4;
     }
-    if !1 || 0 {
+    if !0.1 || 0 {
         return 5;
     }
     return 0;
