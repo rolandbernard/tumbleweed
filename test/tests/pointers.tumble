@@ -1,0 +1,10 @@
+
+main() i32 {
+    x: int = 5;
+    y: *int = *x;
+    y = 10;
+    if y != 10 {
+        return 1;
+    }
+    return 0;
+}

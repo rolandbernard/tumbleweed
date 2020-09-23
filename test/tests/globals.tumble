@@ -1,0 +1,14 @@
+
+x: int = 500;
+y := 500;
+
+main() i32 {
+    if x != y {
+        return 1;
+    }
+    y = 50;
+    if x == y {
+        return 2;
+    }
+    return 0;
+}

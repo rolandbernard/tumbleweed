@@ -1,0 +1,19 @@
+
+main() i32 {
+    if 1 && 0 {
+        return 1;
+    }
+    if !(1 && 1) {
+        return 2;
+    }
+    if 0 || 0 {
+        return 3;
+    }
+    if !(1 || 0) {
+        return 4;
+    }
+    if !1 || 0 {
+        return 5;
+    }
+    return 0;
+}

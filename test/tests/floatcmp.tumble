@@ -1,0 +1,22 @@
+
+main() i32 {
+    if 0.1 < -0.1 {
+        return 1;
+    }
+    if 0.2 > 0.3 {
+        return 2;
+    }
+    if 0 == 0.1 {
+        return 3;
+    }
+    if 0.5 != 0.5 {
+        return 4;
+    }
+    if 0 >= 0.1 {
+        return 5;
+    }
+    if 0.1 <= 0 {
+        return 6;
+    }
+    return 0;
+}

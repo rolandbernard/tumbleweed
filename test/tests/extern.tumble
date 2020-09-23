@@ -1,0 +1,15 @@
+
+extern atoi(str: *i8) i32;
+
+extern stdout: *;
+
+extern fprintf(file: *, fmt: *i8, ..);
+
+main() i32 {
+    if atoi("12345") != 12345 {
+        return 1;
+    } else {
+        fprintf(stdout, "Hello world %li\n", 42);
+        return 0;
+    }
+}

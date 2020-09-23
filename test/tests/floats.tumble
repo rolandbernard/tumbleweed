@@ -1,0 +1,13 @@
+
+main() i32 {
+    if 0.5 != 5e-1 {
+        return 1;
+    }
+    if 5000 != 5e3 {
+        return 2;
+    }
+    if 4200 != 4.2e3 {
+        return 3;
+    }
+    return 0;
+}

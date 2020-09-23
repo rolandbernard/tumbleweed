@@ -6,8 +6,9 @@ main() i32 {
     x = 3;
     y = 5;
     z = x + y;
-    if z == 8 {
-        return 0;
+    a := z + 0.5;
+    if a != 8.5 {
+        return 1;
     }
-    return 1;
+    return 0;
 }

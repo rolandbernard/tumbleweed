@@ -7,10 +7,15 @@ addmul(a: i32, b: i32, c: i32) i32 {
     return add(a, b) * c;
 }
 
+noop() {
+    return;
+}
+
 main() i32 {
     if add(5, 3) == 8 {
         if addmul(2, 3, 5) == 25 {
-            return 0
+            noop();
+            return 0;
         }
         return 2;
     }

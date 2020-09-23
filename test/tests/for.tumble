@@ -1,0 +1,18 @@
+
+main() i32 {
+    x := 0;
+    for x < 100 {
+        x += 1;
+    }
+    if x != 100 {
+        return 1;
+    }
+    x = 1;
+    for x < 100
+        x *= 2;
+    if x != 128 {
+        return 2;
+    }
+    for x < 0;
+    return 0;
+}
