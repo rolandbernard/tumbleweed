@@ -1,0 +1,153 @@
+
+extern memset(dest: *, value: i32, n: int);
+
+extern strlen(str: *i8) int;
+
+extern printf(fmt: *i8, ..);
+
+rotr256(x: i32, n: i32) i32 {
+    return (x >> n) | (x << (32 - n));
+}
+
+ch256(x: i32, y: i32, z: i32) i32 {
+    return (x & y) ^ (~x & z);
+}
+
+maj256(x: i32, y: i32, z: i32) i32 {
+    return (x & y) ^ (x & z) ^ (y & z);
+}
+
+ep0256(x: i32) i32 {
+    return rotr256(x, 2) ^ rotr256(x, 13) ^ rotr256(x, 22);
+}
+
+ep1256(x: i32) i32 {
+    return rotr256(x, 6) ^ rotr256(x, 11) ^ rotr256(x, 25);
+}
+
+sig0256(x: i32) i32 {
+    return rotr256(x, 7) ^ rotr256(x, 18) ^ (x >> 3_H);
+}
+
+sig1256(x: i32) i32 {
+    ten: i32 = 10;
+    return rotr256(x, 17) ^ rotr256(x, 19) ^ (x >> 10_H);
+}
+
+k256: [64]i32;
+
+initK256() {
+    k256[ 0] = 0x428a2f98; k256[ 1] = 0x71374491; k256[ 2] = 0xb5c0fbcf; k256[ 3] = 0xe9b5dba5;
+    k256[ 4] = 0x3956c25b; k256[ 5] = 0x59f111f1; k256[ 6] = 0x923f82a4; k256[ 7] = 0xab1c5ed5;
+    k256[ 8] = 0xd807aa98; k256[ 9] = 0x12835b01; k256[10] = 0x243185be; k256[11] = 0x550c7dc3;
+    k256[12] = 0x72be5d74; k256[13] = 0x80deb1fe; k256[14] = 0x9bdc06a7; k256[15] = 0xc19bf174;
+    k256[16] = 0xe49b69c1; k256[17] = 0xefbe4786; k256[18] = 0x0fc19dc6; k256[19] = 0x240ca1cc;
+    k256[20] = 0x2de92c6f; k256[21] = 0x4a7484aa; k256[22] = 0x5cb0a9dc; k256[23] = 0x76f988da;
+    k256[24] = 0x983e5152; k256[25] = 0xa831c66d; k256[26] = 0xb00327c8; k256[27] = 0xbf597fc7;
+    k256[28] = 0xc6e00bf3; k256[29] = 0xd5a79147; k256[30] = 0x06ca6351; k256[31] = 0x14292967;
+    k256[32] = 0x27b70a85; k256[33] = 0x2e1b2138; k256[34] = 0x4d2c6dfc; k256[35] = 0x53380d13;
+    k256[36] = 0x650a7354; k256[37] = 0x766a0abb; k256[38] = 0x81c2c92e; k256[39] = 0x92722c85;
+    k256[40] = 0xa2bfe8a1; k256[41] = 0xa81a664b; k256[42] = 0xc24b8b70; k256[43] = 0xc76c51a3;
+    k256[44] = 0xd192e819; k256[45] = 0xd6990624; k256[46] = 0xf40e3585; k256[47] = 0x106aa070;
+    k256[48] = 0x19a4c116; k256[49] = 0x1e376c08; k256[50] = 0x2748774c; k256[51] = 0x34b0bcb5;
+    k256[52] = 0x391c0cb3; k256[53] = 0x4ed8aa4a; k256[54] = 0x5b9cca4f; k256[55] = 0x682e6ff3;
+    k256[56] = 0x748f82ee; k256[57] = 0x78a5636f; k256[58] = 0x84c87814; k256[59] = 0x8cc70208;
+    k256[60] = 0x90befffa; k256[61] = 0xa4506ceb; k256[62] = 0xbef9a3f7; k256[63] = 0xc67178f2;
+}
+
+sha256(data: *i8, size: int) i256 {
+    initK256();
+    hash: [8]i32;
+    hash[0] = 0x6a09e667; hash[1] = 0xbb67ae85; hash[2] = 0x3c6ef372; hash[3] = 0xa54ff53a;
+    hash[4] = 0x510e527f; hash[5] = 0x9b05688c; hash[6] = 0x1f83d9ab; hash[7] = 0x5be0cd19;
+    bitsize: i64 = size * 8;
+    i := 0;
+    for i < size + 9 {
+        chunk: [64]i8;
+        memset(chunk, 0, 64);
+        w: [64]i32;
+        memset(w, 0, 64 * 4);
+        j := 0;
+        for j < 64 && i + j  < size {
+            chunk[j] = data[i + j];
+            j++;
+        }
+        if j < 64 {
+            if j + i == size {
+                chunk[j] = 0x80;
+                j++;
+            }
+            if j < 56 {
+                chunk[63] = bitsize & 0xff;
+                chunk[62] = (bitsize >> 8) & 0xff;
+                chunk[61] = (bitsize >> 16) & 0xff;
+                chunk[60] = (bitsize >> 24) & 0xff;
+                chunk[59] = (bitsize >> 32) & 0xff;
+                chunk[58] = (bitsize >> 40) & 0xff;
+                chunk[57] = (bitsize >> 48) & 0xff;
+                chunk[56] = (bitsize >> 56) & 0xff;
+            }
+        }
+        j = 0;
+        for j < 16 {
+            w[j] = (chunk[4*j] << 24) | (chunk[4*j + 1] << 16) | (chunk[4*j + 2] << 8) | chunk[4*j + 3];
+            j++;
+        }
+        for j < 64 {
+            w[j] = w[j - 16] + sig0256(w[j - 15]) + w[j - 7] + sig1256(w[j - 2]);
+            j++;
+        }
+        a: i32 = hash[0];
+        b: i32 = hash[1];
+        c: i32 = hash[2];
+        d: i32 = hash[3];
+        e: i32 = hash[4];
+        f: i32 = hash[5];
+        g: i32 = hash[6];
+        h: i32 = hash[7];
+        j = 0;
+        for j < 64 {
+            tmp1: i32 = h + ep1256(e) + ch256(e, f, g) + k256[j] + w[j];
+            tmp2: i32 = ep0256(a) + maj256(a, b, c);
+            h = g;
+            g = f;
+            f = e;
+            e = d + tmp1;
+            d = c;
+            c = b;
+            b = a;
+            a = tmp1 + tmp2;
+            j++;
+        }
+        hash[0] += a;
+        hash[1] += b;
+        hash[2] += c;
+        hash[3] += d;
+        hash[4] += e;
+        hash[5] += f;
+        hash[6] += g;
+        hash[7] += h;
+        i += 64;
+    }
+    ret: i256 = 0;
+    i = 0;
+    for i < 8 {
+        j := 0;
+        for j < 4 {
+            hash_elm: i256 = ((hash[i] >> (24 - 8*j)) & 0xff);
+            ret |= hash_elm << (256 - 8 * (4 * i + j + 1));
+            j++;
+        }
+        i++;
+    }
+    return ret;
+}
+
+main() i32 {
+    str: *i8 = "Hello world!";
+    hash := sha256(str, strlen(str));
+    if hash != 0xc0535e4be2b79ffd93291305436bf889314e4a3faec05ecffcbb7df31ad9e51a_LL {
+        return 1;
+    }
+    return 0;
+}

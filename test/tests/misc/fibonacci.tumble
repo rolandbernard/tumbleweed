@@ -1,0 +1,42 @@
+
+fib_rec(n: int) int {
+    if n <= 1 {
+        return n;
+    } else {
+        return fib_rec(n - 1) + fib_rec(n - 2);
+    }
+}
+
+fib_for(n: i512) i512 {
+    a: i512 = 0;
+    b: i512 = 1;
+    for n > 0 {
+        tmp := a + b;
+        a = b;
+        b = tmp;
+        n--;
+    }
+    return a;
+}
+
+fib_acc(n: i512, a: i512, b: i512) i512{
+    if n == 0 {
+        return a;
+    } else {
+        return fib_acc(n - 1, b, a + b);
+    }
+}
+
+main() i32 {
+    i: int = 0;
+    for i < 20 {
+        if fib_rec(i) != fib_for(i) {
+            return i + 1;
+        }
+        i++;
+    }
+    if fib_for(200) != fib_acc(200, 0, 1) {
+        return 21;
+    }
+    return 0;
+}

@@ -1,0 +1,28 @@
+
+fak_rec(n: int) int {
+    if n <= 1 {
+        return 1;
+    } else {
+        return n * fak_rec(n - 1);
+    }
+}
+
+fak_for(n: int) int {
+    a: int = 1;
+    for n > 0 {
+        a *= n;
+        n--;
+    }
+    return a;
+}
+
+main() i32 {
+    i: int = 0;
+    for i < 10 {
+        if fak_for(i) != fak_rec(i) {
+            return i + 1;
+        }
+        i++;
+    }
+    return 0;
+}

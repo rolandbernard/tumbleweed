@@ -2,7 +2,7 @@
 main() i32 {
     if 33 != 0x21 {
         return 1;
-    } else if 0b1111 != 0o17 {
+    } else if 0b1_111 != 0o17 {
         return 2;
     }
     return 0;
