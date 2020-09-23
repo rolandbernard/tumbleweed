@@ -216,49 +216,60 @@ int determineToken(const char* from, TokenType* type) {
         *type = TOKEN_IDENTIFIER;
         return len;
     } else if ((from[0] >= '0' && from[0] <= '9') || (from[0] == '.' && (from[1] >= '0' && from[1] <= '9'))) {
+        int len = 0;
+        bool is_float = false;
         if (from[1] == 'b') {
-            int len = 2;
+            len = 2;
             while (from[len] == '0' || from[len] == '1' || from[len] == '_') {
                 len++;
             }
             *type = TOKEN_INT_CONST;
-            return len;
-        }
-        if (from[1] == 'o') {
-            int len = 2;
+        } else if (from[1] == 'o') {
+            len = 2;
             while ((from[len] >= '0' && from[len] <= '7') || from[len] == '_') {
                 len++;
             }
             *type = TOKEN_INT_CONST;
-            return len;
         }
         if (from[1] == 'h' || from[1] == 'x') {
-            int len = 2;
+            len = 2;
             while (isHexChar(from[len]) || from[len] == '_') {
                 len++;
             }
             *type = TOKEN_INT_CONST;
-            return len;
-        }
-        int len = 0;
-        bool is_float = false;
-        while ((from[len] >= '0' && from[len] <= '9') || from[len] == '_') {
-            len++;
-        }
-        if (from[len] == '.') {
-            len++;
-            is_float = true;
+        } else {
             while ((from[len] >= '0' && from[len] <= '9') || from[len] == '_') {
                 len++;
             }
-        }
-        if (from[len] == 'e') {
-            is_float = true;
-            if (from[len] == '+' || from[len] == '-') {
+            if (from[len] == '.') {
                 len++;
+                is_float = true;
+                while ((from[len] >= '0' && from[len] <= '9') || from[len] == '_') {
+                    len++;
+                }
             }
-            while ((from[len] >= '0' && from[len] <= '9') || from[len] == '_') {
+            if (from[len] == 'e' && (from[len + 1] == '-' || from[len + 1] == '+' || (from[len + 1] >= '0' && from[len + 1] <= '9') || from[len + 1] == '_')) {
+                is_float = true;
                 len++;
+                if (from[len] == '+' || from[len] == '-') {
+                    len++;
+                }
+                while ((from[len] >= '0' && from[len] <= '9') || from[len] == '_') {
+                    len++;
+                }
+            }
+        }
+        if(!is_float) {
+            if(from[len] == 'B') {
+                len++;
+            } else if(from[len] == 'H') {
+                while(from[len] == 'H') {
+                    len++;
+                }
+            } else if(from[len] == 'L') {
+                while(from[len] == 'L') {
+                    len++;
+                }
             }
         }
         *type = is_float ? TOKEN_FLOAT_CONST : TOKEN_INT_CONST;

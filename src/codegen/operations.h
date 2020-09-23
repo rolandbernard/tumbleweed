@@ -54,6 +54,8 @@ LLVMValueRef generateValueNegative(AstUnaryOperation* ast, Symbol* function, LLV
 
 LLVMValueRef generateValueNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
+LLVMValueRef generateValueBoolNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
 LLVMValueRef generateValueIncrement(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 LLVMValueRef generateValueDecrement(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);

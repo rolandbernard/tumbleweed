@@ -9,6 +9,7 @@ const Args default_args = {
     .help = false,
     .version = false,
     .debug = false,
+    .compiler_debug = false,
     .size_opt = 0,
     .speed_opt = 2,
     .emit_format = EMIT_LINK,
@@ -40,6 +41,8 @@ void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
                 args->help = true;
             } else if(strcmp(argv[i], "-g") == 0 || strcmp(argv[i], "--debug") == 0) {
                 args->debug = true;
+            } else if(strcmp(argv[i], "--compiler-debug") == 0) {
+                args->compiler_debug = true;
             } else if(strcmp(argv[i], "-O0") == 0) {
                 args->speed_opt = 0;
             } else if(strcmp(argv[i], "-O1") == 0) {

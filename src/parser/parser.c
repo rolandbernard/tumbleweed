@@ -109,28 +109,28 @@ static AstIfElse* parseIf(Scanner* scanner, ErrorContext* error_context) {
         condition = parseExpression(scanner, error_context);
         if (condition != NULL && condition != PARSE_ERROR) {
             if_block = (Ast*)parseStatment(scanner, error_context);
-            if (if_block != NULL && if_block != PARSE_ERROR) {
+            if (if_block != PARSE_ERROR) { 
+                Token last;
+                if(if_block == NULL || if_block->type != AST_CODE_BLOCK) {
+                    consume(scanner, TOKEN_SEMICOLON, &last);
+                }
                 if (accept(scanner, TOKEN_ELSE)) {
                     else_block = (Ast*)parseStatment(scanner, error_context);
-                    if (else_block == NULL || else_block == PARSE_ERROR) {
-                        if (else_block == NULL) {
-                            addError(error_context, "Expected a code block or another if condition", getCurrentScannerPosition(scanner), ERROR);
-                        }
+                    if (else_block == PARSE_ERROR) {
                         goto failed;
+                    }
+                    if(else_block == NULL || else_block->type != AST_CODE_BLOCK) {
+                        consume(scanner, TOKEN_SEMICOLON, &last);
                     }
                 }
                 AstIfElse* ret = (AstIfElse*)malloc(sizeof(AstIfElse));
                 ret->type = AST_IF_ELSE;
                 ret->start = first.start;
-                ret->end = else_block == NULL ? if_block->end : else_block->end;
+                ret->end = else_block == NULL ? (if_block == NULL ? last.end : if_block->end) : else_block->end;
                 ret->condition = condition;
                 ret->if_block = if_block;
                 ret->else_block = else_block;
                 return ret;
-            } else {
-                if (if_block == NULL) {
-                    addError(error_context, "Expected a code block", getCurrentScannerPosition(scanner), ERROR);
-                }
             }
         } else {
             if (condition == NULL) {
@@ -154,10 +154,14 @@ static Ast* parseFor(Scanner* scanner, ErrorContext* error_context) {
         if (condition != PARSE_ERROR) {
             body = parseStatment(scanner, error_context);
             if (body != PARSE_ERROR) {
+                Token last;
+                if(body == NULL || body->type != AST_CODE_BLOCK) {
+                    consume(scanner, TOKEN_SEMICOLON, &last);
+                }
                 AstForLoop* ret = (AstForLoop*)malloc(sizeof(AstForLoop));
                 ret->type = AST_FOR_LOOP;
                 ret->start = first.start;
-                ret->end = body->end;
+                ret->end = body == NULL ? last.end : body->end;
                 ret->condition = condition;
                 ret->code_block = body;
                 return (Ast*)ret;
@@ -401,6 +405,19 @@ static AstParameterDefinition* parseParameterDefinition(Scanner* scanner, ErrorC
     return NULL;
 }
 
+static void cleanNumberString(char* str) {
+    int insert = 0;
+    int read = 0;
+    while(str[read] != 0) {
+        if(str[read] != '_') {
+            str[insert] = str[read];
+            insert++;
+        }
+        read++;
+    }
+    str[insert] = 0;
+}
+
 static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_context) {
     Token first;
     if (consume(scanner, TOKEN_INT_CONST, &first)) {
@@ -409,6 +426,7 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
         ret->start = first.start;
         ret->end = first.end;
         ret->integer_string = getStringCopyFromFile(scanner->file, first.start, first.end);
+        cleanNumberString(ret->integer_string);
         return (Ast*)ret;
     } else if (consume(scanner, TOKEN_FLOAT_CONST, &first)) {
         AstFloatLiteral* ret = (AstFloatLiteral*)malloc(sizeof(AstFloatLiteral));
@@ -416,6 +434,7 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
         ret->start = first.start;
         ret->end = first.end;
         ret->float_string = getStringCopyFromFile(scanner->file, first.start, first.end);
+        cleanNumberString(ret->float_string);
         return (Ast*)ret;
     } else if (consume(scanner, TOKEN_IDENTIFIER, &first)) {
         AstVariableAccess* ret = (AstVariableAccess*)malloc(sizeof(AstVariableAccess));
@@ -584,8 +603,10 @@ static Ast* parseExpressionLevelUnary(Scanner* scanner, ErrorContext* error_cont
             type = AST_POSITIVE;
         } else if (consume(scanner, TOKEN_STAR, &first)) {
             type = AST_REFERENCE;
-        } else if (consume(scanner, TOKEN_TILDE, &first) || accept(scanner, TOKEN_EXCL)) {
+        } else if (consume(scanner, TOKEN_TILDE, &first)) {
             type = AST_NOT;
+        } else if(consume(scanner, TOKEN_EXCL, &first)) {
+            type = AST_BOOL_NOT;
         } else if (consume(scanner, TOKEN_AND, &first)) {
              type = AST_DEREFERENCE;
         }

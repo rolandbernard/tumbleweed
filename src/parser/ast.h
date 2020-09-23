@@ -67,6 +67,7 @@ typedef enum {
     AST_NEGATIVE,
     AST_REFERENCE,
     AST_NOT,
+    AST_BOOL_NOT,
     AST_INCREMENT,
     AST_DECREMENT,
     

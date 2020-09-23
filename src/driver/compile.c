@@ -184,18 +184,22 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
             }
             LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(target, triple, "", "", opt_level, LLVMRelocPIC, LLVMCodeModelDefault);
             LLVMTargetDataRef data_layout = LLVMCreateTargetDataLayout(target_machine);
+            LLVMSetTarget(linked_module, triple);
+            LLVMSetModuleDataLayout(linked_module, data_layout);
             LLVMPassManagerRef module_pass_manager = LLVMCreatePassManager();
             LLVMPassManagerBuilderRef pass_manager_builder = LLVMPassManagerBuilderCreate();
             LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, args->speed_opt);
             LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, args->size_opt);
-            LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, max(0, args->speed_opt - args->size_opt) * 500);
+            if(args->size_opt == 0 && args->speed_opt > 1) {
+                LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, args->speed_opt * 100);
+            }
             LLVMAddAnalysisPasses(target_machine, module_pass_manager);
             LLVMAddVerifierPass(module_pass_manager);
             LLVMAddCFGSimplificationPass(module_pass_manager);
-            LLVMSetTarget(linked_module, triple);
-            LLVMSetModuleDataLayout(linked_module, data_layout);
             LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, module_pass_manager);
-            LLVMRunPassManager(module_pass_manager, linked_module);
+            if(!args->compiler_debug) {
+                LLVMRunPassManager(module_pass_manager, linked_module);
+            }
             if (args->emit_format == EMIT_LLVM_IR) {
                 char* out_file = args->output_file;
                 if (out_file == NULL) {

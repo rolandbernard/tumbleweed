@@ -334,6 +334,7 @@ static PrintFunction print_functions[] = {
     [AST_NEGATIVE] = (PrintFunction)printAstUnaryOperation,
     [AST_REFERENCE] = (PrintFunction)printAstUnaryOperation,
     [AST_NOT] = (PrintFunction)printAstUnaryOperation,
+    [AST_BOOL_NOT] = (PrintFunction)printAstUnaryOperation,
     [AST_INCREMENT] = (PrintFunction)printAstUnaryOperation,
     [AST_DECREMENT] = (PrintFunction)printAstUnaryOperation,
 

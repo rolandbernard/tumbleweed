@@ -11,7 +11,7 @@ LLVMValueRef generateCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef dest, 
     LLVMTypeRef src = LLVMTypeOf(value);
     if(src == dest) {
         return value;
-    } else if(LLVMGetTypeKind(src) == LLVMGetTypeKind(dest)) {
+    } else if(LLVMGetTypeKind(src) == LLVMGetTypeKind(dest) || (isAFloat(src) && isAFloat(dest))) {
         if(LLVMGetTypeKind(src) == LLVMPointerTypeKind) {
             return LLVMBuildPointerCast(builder, value, dest, "");
         } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind) {
@@ -38,7 +38,7 @@ LLVMValueRef generateConstCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef d
     LLVMTypeRef src = LLVMTypeOf(value);
     if(src == dest) {
         return value;
-    } else if(LLVMGetTypeKind(src) == LLVMGetTypeKind(dest)) {
+    } else if(LLVMGetTypeKind(src) == LLVMGetTypeKind(dest) || (isAFloat(src) && isAFloat(dest))) {
         if(LLVMGetTypeKind(src) == LLVMPointerTypeKind) {
             return LLVMConstPointerCast(value, dest);
         } else if(LLVMGetTypeKind(src) == LLVMIntegerTypeKind) {
@@ -64,7 +64,7 @@ LLVMValueRef generateConstCastFromTo(Ast* ast, LLVMValueRef value, LLVMTypeRef d
 }
 
 LLVMValueRef generateExtractFromVariable(LLVMValueRef value, Symbol* function, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
-    if(LLVMIsAAllocaInst(value) || LLVMIsAGetElementPtrInst(value) || LLVMIsAGlobalVariable(value)) {
+    if(LLVMIsAAllocaInst(value) || LLVMIsAGetElementPtrInst(value) || LLVMIsAGlobalVariable(value) || (LLVMIsAConstantExpr(value) && LLVMGetConstOpcode(value) == LLVMGetElementPtr)) {
         if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(value))) == LLVMArrayTypeKind) {
             return value;
         } else {

@@ -18,6 +18,7 @@ typedef struct {
     bool help;
     bool version;
     bool debug;
+    bool compiler_debug;
     int size_opt;
     int speed_opt;
     EmitFormat emit_format;

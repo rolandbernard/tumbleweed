@@ -50,6 +50,8 @@ LLVMValueRef generateConstNegative(AstUnaryOperation* ast, Symbol* function, LLV
 
 LLVMValueRef generateConstNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
+LLVMValueRef generateConstBoolNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
+
 LLVMValueRef generateConstVariableAccess(AstVariableAccess* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);
 
 LLVMValueRef generateConst(Ast* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context);

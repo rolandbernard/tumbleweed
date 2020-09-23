@@ -43,12 +43,7 @@ bool generateFunctionShell(AstFunctionDefinition* ast, File* file, LLVMMetadataR
             LLVMValueRef function = LLVMAddFunction(module, ast->name, function_type);
             if(args->debug && ast->body != NULL) {
                 LineInfo line_info = positionInFileToLineInfo(file, ast->start);
-                LLVMMetadataRef* parameter_type_meta = (LLVMMetadataRef*)malloc(sizeof(LLVMMetadataRef) * ast->parameter_count);
-                for (int i = 0; i < ast->parameter_count; i++) {
-                    parameter_type_meta[i] = generateTypeMeta(ast->parameters[i]->parameter_type, dibuilder, args);
-                }
-                LLVMMetadataRef difunc = LLVMDIBuilderCreateFunction(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, file_meta, line_info.line, LLVMDIBuilderCreateSubroutineType(dibuilder, file_meta, parameter_type_meta, ast->parameter_count, 0), false, ast->body != NULL, 0, 0, true);
-                free(parameter_type_meta);
+                LLVMMetadataRef difunc = LLVMDIBuilderCreateFunction(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, file_meta, line_info.line, generateTypeMeta(dibuilder, function_type, file_meta), false, ast->body != NULL, line_info.line, 0, args->size_opt != 0 || args->size_opt != 0);
                 LLVMSetSubprogram(function, difunc);
                 symbol->file = file;
                 symbol->llvm_difunc = difunc;
@@ -91,7 +86,7 @@ bool generateFunctionBody(AstFunctionDefinition* ast, LLVMModuleRef module, LLVM
                     LLVMBuildStore(builder, LLVMGetParam(symbol->llvm_value, i), param);
                     if(args->debug) {
                         LineInfo line_info = positionInFileToLineInfo(symbol->file, ast->parameters[i]->start);
-                        LLVMMetadataRef param_type_meta = generateTypeMeta(ast->parameters[i]->parameter_type, dibuilder, args);
+                        LLVMMetadataRef param_type_meta = generateTypeMeta(dibuilder, LLVMGetElementType(LLVMTypeOf(param)), symbol->llvm_difile);
                         LLVMMetadataRef param_meta = LLVMDIBuilderCreateParameterVariable(dibuilder, symbol->llvm_difunc, ast->parameters[i]->name, strlen(ast->parameters[i]->name), i, symbol->llvm_difile, line_info.line, param_type_meta, false, 0);
                         LLVMMetadataRef param_loc = LLVMDIBuilderCreateDebugLocation(LLVMGetGlobalContext(), line_info.line, line_info.column, symbol->llvm_difunc, NULL);
                         LLVMDIBuilderInsertDeclareAtEnd(dibuilder, param, param_meta, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), param_loc, block);
@@ -197,7 +192,7 @@ bool generateGlobalVariable(AstVariableDefinition* ast, File* file, LLVMMetadata
             }
             if(args->debug && !ast->is_extern) {
                 LineInfo line_info = positionInFileToLineInfo(file, ast->start);
-                LLVMMetadataRef type_meta = generateTypeMeta(ast->variable_type, dibuilder, args);
+                LLVMMetadataRef type_meta = generateTypeMeta(dibuilder, variable_type, file_meta);
                 LLVMMetadataRef variable_meta = LLVMDIBuilderCreateGlobalVariableExpression(dibuilder, file_meta, ast->name, strlen(ast->name), NULL, 0, file_meta, line_info.line, type_meta, false, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), NULL, 0);
                 LLVMGlobalSetMetadata(variable, 0, variable_meta);
             }
@@ -354,10 +349,10 @@ LLVMValueRef generateValueVariable(AstVariableDefinition* ast, Symbol* function,
             }
             if(args->debug) {
                 LineInfo line_info = positionInFileToLineInfo(function->file, ast->start);
-                LLVMMetadataRef type_meta = generateTypeMeta(ast->variable_type, dibuilder, args);
+                LLVMMetadataRef type_meta = generateTypeMeta(dibuilder, variable_type, function->llvm_difile);
                 LLVMMetadataRef meta = LLVMDIBuilderCreateAutoVariable(dibuilder, function->llvm_difunc, ast->name, strlen(ast->name), function->llvm_difile, line_info.line, type_meta, false, 0, 0);
                 LLVMMetadataRef loc = LLVMDIBuilderCreateDebugLocation(LLVMGetGlobalContext(), line_info.line, line_info.column, function->llvm_difunc, NULL);
-                LLVMDIBuilderInsertDeclareAtEnd(dibuilder, variable, meta, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), loc, LLVMGetInsertBlock(builder));
+                LLVMDIBuilderInsertDeclareAtEnd(dibuilder, variable, meta, LLVMDIBuilderCreateExpression(dibuilder, NULL, 0), loc, current_block);
             }
             symbol->llvm_value = variable;
             addSymbol(symbols, (void*)symbol);
@@ -412,9 +407,11 @@ LLVMValueRef generateValueIfElse(AstIfElse* ast, Symbol* function, LLVMDIBuilder
         LLVMBuildCondBr(builder, condition_bool, if_start, else_start);
     }
     LLVMPositionBuilderAtEnd(builder, if_start);
-    LLVMValueRef if_value = generateValueInFunction(ast->if_block, function, dibuilder, builder, args, symbols, error_context);
-    if (if_value == NULL) {
-        error = true;
+    if (ast->if_block != NULL) {
+        LLVMValueRef if_value = generateValueInFunction(ast->if_block, function, dibuilder, builder, args, symbols, error_context);
+        if (if_value == NULL) {
+            error = true;
+        }
     }
     bool require_end = false;
     LLVMValueRef last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
@@ -451,7 +448,10 @@ LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMDIBuild
     LLVMBasicBlockRef for_start = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(LLVMGetInsertBlock(builder)), "");
     LLVMBasicBlockRef for_body = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(for_start), "");
     LLVMBasicBlockRef for_end = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(for_body), "");
-    LLVMBuildBr(builder, for_start);
+    LLVMValueRef last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
+    if(last_instr == NULL || LLVMGetInstructionOpcode(last_instr) != LLVMBr) {
+        LLVMBuildBr(builder, for_start);
+    }
     LLVMPositionBuilderAtEnd(builder, for_start);
     LLVMValueRef condition = generateValueInFunction(ast->condition, function, dibuilder, builder, args, symbols, error_context);
     LLVMValueRef condition_bool = NULL;
@@ -488,11 +488,13 @@ LLVMValueRef generateValueForLoop(AstForLoop* ast, Symbol* function, LLVMDIBuild
         LLVMBuildCondBr(builder, condition_bool, for_body, for_end);
     }
     LLVMPositionBuilderAtEnd(builder, for_body);
-    LLVMValueRef body = generateValueInFunction(ast->code_block, function, dibuilder, builder, args, symbols, error_context);
-    if(body == NULL) {
-        error = true;
+    if(ast->code_block != NULL) {
+        LLVMValueRef body = generateValueInFunction(ast->code_block, function, dibuilder, builder, args, symbols, error_context);
+        if (body == NULL) {
+            error = true;
+        }
     }
-    LLVMValueRef last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
+    last_instr = LLVMGetLastInstruction(LLVMGetInsertBlock(builder));
     if(last_instr == NULL || LLVMGetInstructionOpcode(last_instr) != LLVMBr) {
         LLVMBuildBr(builder, for_start);
     }
@@ -520,6 +522,8 @@ LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMD
             }
             LLVMBasicBlockRef exit = LLVMGetLastBasicBlock(function->llvm_value);
             LLVMBuildBr(builder, exit);
+            LLVMBasicBlockRef after_return = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(LLVMGetInsertBlock(builder)), "");
+            LLVMPositionBuilderAtEnd(builder, after_return);
             return value;
         }
     } else {
@@ -529,6 +533,8 @@ LLVMValueRef generateValueReturn(AstUnaryOperation* ast, Symbol* function, LLVMD
         } else {
             LLVMBasicBlockRef exit = LLVMGetLastBasicBlock(function->llvm_value);
             LLVMBuildBr(builder, exit);
+            LLVMBasicBlockRef after_return = LLVMInsertBasicBlock(LLVMGetNextBasicBlock(LLVMGetInsertBlock(builder)), "");
+            LLVMPositionBuilderAtEnd(builder, after_return);
             return (LLVMValueRef)1;
         }
     }
@@ -538,11 +544,20 @@ LLVMValueRef generateValueCodeBlock(AstCodeBlock* ast, Symbol* function, LLVMDIB
     bool error = false;
     appendScope(symbols);
     toNextScope(symbols);
+    LLVMMetadataRef old_scope = function->llvm_difunc;
+    if(args->debug) {
+        LineInfo line_info = positionInFileToLineInfo(function->file, ast->start);
+        LLVMMetadataRef scope = LLVMDIBuilderCreateLexicalBlock(dibuilder, function->llvm_difunc, function->llvm_difile, line_info.line, line_info.column);
+        function->llvm_difunc = scope;
+    }
     for(int i = 0; i < ast->children_count; i++) {
         LLVMValueRef value = generateValueInFunction(ast->children[i], function, dibuilder, builder, args, symbols, error_context);
         if(value == NULL) {
             error = true;
         }
+    }
+    if(args->debug) {
+        function->llvm_difunc = old_scope;
     }
     toPrevScope(symbols);
     freeLowerScopes(symbols);
@@ -572,7 +587,19 @@ LLVMValueRef generateValueIntegerLiteral(AstIntegerLiteral* ast, Symbol* functio
             len -= 2;
         }
     }
-    return LLVMConstIntOfStringAndSize(LLVMIntType(64), str, len, base);
+    int int_len = 64;
+    while(str[len - 1] == 'L') {
+        int_len *= 2;
+        len--;
+    }
+    while(str[len - 1] == 'H') {
+        int_len /= 2;
+        len--;
+    }
+    if(int_len == 0 || str[len - 1] == 'B') {
+        int_len = 1;
+    }
+    return LLVMConstIntOfStringAndSize(LLVMIntType(int_len), str, len, base);
 }
 
 LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
@@ -746,6 +773,7 @@ static GenerateValueFunction generation_functions[] = {
     [AST_NEGATIVE] = (GenerateValueFunction)generateValueNegative,
     [AST_REFERENCE] = (GenerateValueFunction)generateValueReference,
     [AST_NOT] = (GenerateValueFunction)generateValueNot,
+    [AST_BOOL_NOT] = (GenerateValueFunction)generateValueBoolNot,
     [AST_INCREMENT] = (GenerateValueFunction)generateValueIncrement,
     [AST_DECREMENT] = (GenerateValueFunction)generateValueDecrement,
 

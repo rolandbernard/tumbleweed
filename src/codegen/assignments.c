@@ -10,7 +10,7 @@ LLVMValueRef generateValueAssignment(AstAssignment* ast, Symbol* function, LLVMD
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     }
@@ -35,7 +35,7 @@ LLVMValueRef generateValueOrAssignment(AstAssignment* ast, Symbol* function, LLV
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind) {
@@ -65,7 +65,7 @@ LLVMValueRef generateValueAndAssignment(AstAssignment* ast, Symbol* function, LL
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind) {
@@ -95,7 +95,7 @@ LLVMValueRef generateValueXorAssignment(AstAssignment* ast, Symbol* function, LL
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind) {
@@ -125,7 +125,7 @@ LLVMValueRef generateValueShiftRightAssignment(AstAssignment* ast, Symbol* funct
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind) {
@@ -155,7 +155,7 @@ LLVMValueRef generateValueShiftLeftAssignment(AstAssignment* ast, Symbol* functi
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind) {
@@ -185,7 +185,7 @@ LLVMValueRef generateValueAddAssignment(AstAssignment* ast, Symbol* function, LL
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind &&
@@ -225,7 +225,7 @@ LLVMValueRef generateValueSubtractAssignment(AstAssignment* ast, Symbol* functio
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind &&
@@ -265,7 +265,7 @@ LLVMValueRef generateValueMultiplyAssignment(AstAssignment* ast, Symbol* functio
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind &&
@@ -305,7 +305,7 @@ LLVMValueRef generateValueDivideAssignment(AstAssignment* ast, Symbol* function,
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind &&
@@ -345,7 +345,7 @@ LLVMValueRef generateValueRemainderAssignment(AstAssignment* ast, Symbol* functi
     LLVMValueRef dest = generateValueInFunction(ast->destination, function, dibuilder, builder, args, symbols, error_context);
     if(dest == NULL) {
         error = true;
-    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest)) {
+    } else if(!LLVMIsAAllocaInst(dest) && !LLVMIsAGetElementPtrInst(dest) && !LLVMIsAGlobalVariable(dest) && !(LLVMIsAConstantExpr(dest) && LLVMGetConstOpcode(dest) == LLVMGetElementPtr)) {
         addError(error_context, "Can't write to a temporary value", ast->destination->start, ERROR);
         error = true;
     } else if(LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(dest))) != LLVMIntegerTypeKind) {

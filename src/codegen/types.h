@@ -15,12 +15,6 @@ LLVMTypeRef generateTypeAddress(Ast* ast, Args* args, ErrorContext* error_contex
 
 LLVMTypeRef generateType(Ast* ast, Args* args, ErrorContext* error_context);
 
-LLVMMetadataRef generateTypeMetaBase(AstVariableAccess* ast, LLVMDIBuilderRef dibuilder, Args* args);
-
-LLVMMetadataRef generateTypeMetaReference(AstUnaryOperation* ast, LLVMDIBuilderRef dibuilder, Args* args);
-
-LLVMMetadataRef generateTypeMetaAddress(Ast* ast, LLVMDIBuilderRef dibuilder, Args* args);
-
-LLVMMetadataRef generateTypeMeta(Ast* ast, LLVMDIBuilderRef dibuilder, Args* args);
+LLVMMetadataRef generateTypeMeta(LLVMDIBuilderRef dibuilder, LLVMTypeRef type, LLVMMetadataRef file);
 
 #endif

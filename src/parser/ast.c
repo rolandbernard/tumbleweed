@@ -240,6 +240,7 @@ static FreeFunction free_functions[] = {
     [AST_NEGATIVE] = (FreeFunction)freeAstUnaryOperation,
     [AST_REFERENCE] = (FreeFunction)freeAstUnaryOperation,
     [AST_NOT] = (FreeFunction)freeAstUnaryOperation,
+    [AST_BOOL_NOT] = (FreeFunction)freeAstUnaryOperation,
     [AST_INCREMENT] = (FreeFunction)freeAstUnaryOperation,
     [AST_DECREMENT] = (FreeFunction)freeAstUnaryOperation,
 

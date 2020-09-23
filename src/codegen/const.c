@@ -524,6 +524,18 @@ LLVMValueRef generateConstNegative(AstUnaryOperation* ast, Symbol* function, LLV
 LLVMValueRef generateConstNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef value = generateConst(ast->operand, function, dibuilder, builder, args, symbols, error_context);
     if(value != NULL) {
+        if (LLVMGetTypeKind((LLVMTypeOf(value))) != LLVMIntegerTypeKind) {            
+            addError(error_context, "The operation only works for integers", ast->operand->start, ERROR);
+        } else {
+            return LLVMConstNot(value);
+        }
+    }
+    return NULL;
+}
+
+LLVMValueRef generateConstBoolNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
+    LLVMValueRef value = generateConst(ast->operand, function, dibuilder, builder, args, symbols, error_context);
+    if(value != NULL) {
         if (LLVMGetTypeKind((LLVMTypeOf(value))) != LLVMIntegerTypeKind &&
             LLVMGetTypeKind((LLVMTypeOf(value))) != LLVMPointerTypeKind && !isAFloat(LLVMTypeOf(value))) {            
             addError(error_context, "The operation only works for integers, pointers and floats", ast->operand->start, ERROR);
@@ -531,7 +543,7 @@ LLVMValueRef generateConstNot(AstUnaryOperation* ast, Symbol* function, LLVMDIBu
             if (isAFloat(LLVMTypeOf(value))) {
                 return LLVMConstFCmp(LLVMRealUEQ, value, LLVMConstNull(LLVMTypeOf(value)));
             } else {
-                return LLVMConstNot(value);
+                return LLVMConstICmp(LLVMIntEQ, value, LLVMConstNull(LLVMTypeOf(value)));
             }
         }
     }
@@ -609,6 +621,7 @@ static GenerateConstFunction generation_functions[] = {
     [AST_NEGATIVE] = (GenerateConstFunction)generateConstNegative,
     [AST_REFERENCE] = (GenerateConstFunction)NULL,
     [AST_NOT] = (GenerateConstFunction)generateConstNot,
+    [AST_BOOL_NOT] = (GenerateConstFunction)generateConstBoolNot,
     [AST_INCREMENT] = (GenerateConstFunction)NULL,
     [AST_DECREMENT] = (GenerateConstFunction)NULL,
 
