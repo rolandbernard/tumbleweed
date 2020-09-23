@@ -67,6 +67,10 @@ void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
                     args->emit_format = EMIT_OBJ;
                 } else if(strcmp(argv[i], "asm") == 0) {
                     args->emit_format = EMIT_ASM;
+                } else if(strcmp(argv[i], "jit") == 0) {
+                    args->emit_format = EMIT_JIT;
+                } else {
+                    addErrorf(error_context, NOPOS, WARNING, "The unknown emition type '%s' will be ignored", argv[i]);
                 }
             } else if(strcmp(argv[i], "-L") == 0) {
                 i++;
@@ -130,7 +134,7 @@ void printHelpText(FILE* file, int argc, char** argv) {
     fprintf(file, "    -g, --debug             Include debug information in the build.\n");
     fprintf(file, "    -O0, -O1, -O2, -O3      Set the speed optimization level. (default: -O1)\n");
     fprintf(file, "    -Os, -Oz                Set the size optimization level.\n");
-    fprintf(file, "    -e, --emit [llvm-bc|llvm-ir|asm|obj|link]\n");
+    fprintf(file, "    -e, --emit [llvm-bc|llvm-ir|asm|obj|link|jit]\n");
     fprintf(file, "                            Set the type that should be generated. (default: link|obj)\n");
     fprintf(file, "    -t, --target TARGET     Set the target to compile for. (default: host)\n");
     fprintf(file, "    -o, --output FILE       Output the result to the given file.\n");

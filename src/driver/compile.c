@@ -16,6 +16,7 @@
 #include "parser/parser.h"
 #include "codegen/codegen.h"
 #include "common/exec.h"
+#include "driver/jit.h"
 
 #define TMP_OBJECT_NAME_PREFIX "/tmp/tumbleweed_tmp_obj."
 #define MAX_LINK_ERROR 1000000
@@ -150,177 +151,184 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
             }
         }
     }
-    char* host_triple = LLVMGetDefaultTargetTriple();
-    char* triple = NULL;
-    if (args->target != NULL && strcmp(host_triple, args->target) != 0) {
-        triple = args->target;
-    } else {
-        triple = host_triple;
-    }
-    LLVMTargetRef target = NULL;
-    LLVMInitializeAllTargetInfos();
-    LLVMInitializeAllTargets();
-    LLVMInitializeAllAsmPrinters();
-    LLVMInitializeAllTargetMCs();
-    if (LLVMGetTargetFromTriple(triple, &target, &error_msg)) {
-        addError(error_context, error_msg, NOPOS, ERROR);
-        LLVMDisposeMessage(error_msg);
-    } else {
-        if (linked_module != NULL && getErrorCount(error_context) == 0) {
-            LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelDefault;
-            switch (max(args->size_opt, args->speed_opt)) {
-            case 0:
-                opt_level = LLVMCodeGenLevelNone;
-                break;
-            case 1:
-                opt_level = LLVMCodeGenLevelLess;
-                break;
-            case 2:
-                opt_level = LLVMCodeGenLevelDefault;
-                break;
-            case 3:
-                opt_level = LLVMCodeGenLevelAggressive;
-                break;
-            }
-            LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(target, triple, "", "", opt_level, LLVMRelocPIC, LLVMCodeModelDefault);
-            LLVMTargetDataRef data_layout = LLVMCreateTargetDataLayout(target_machine);
-            LLVMSetTarget(linked_module, triple);
-            LLVMSetModuleDataLayout(linked_module, data_layout);
-            LLVMPassManagerRef module_pass_manager = LLVMCreatePassManager();
-            LLVMPassManagerBuilderRef pass_manager_builder = LLVMPassManagerBuilderCreate();
-            LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, args->speed_opt);
-            LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, args->size_opt);
-            if(args->size_opt == 0 && args->speed_opt > 1) {
-                LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, args->speed_opt * 100);
-            }
-            LLVMAddAnalysisPasses(target_machine, module_pass_manager);
-            LLVMAddVerifierPass(module_pass_manager);
-            LLVMAddCFGSimplificationPass(module_pass_manager);
-            LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, module_pass_manager);
-            if(!args->compiler_debug) {
-                LLVMRunPassManager(module_pass_manager, linked_module);
-            }
-            if (args->emit_format == EMIT_LLVM_IR) {
-                char* out_file = args->output_file;
-                if (out_file == NULL) {
-                    out_file = changeExt(args->input_files[0], ".ll");
-                }
-                if (LLVMPrintModuleToFile(linked_module, out_file, &error_msg)) {
-                    addErrorf(error_context, NOPOS, ERROR, "Failed to output LLVM IR: %s", error_msg);
-                    LLVMDisposeMessage(error_msg);
-                }
-                if (args->output_file == NULL) {
-                    free(out_file);
-                }
-            } else if (args->emit_format == EMIT_LLVM_BC) {
-                char* out_file = args->output_file;
-                if (out_file == NULL) {
-                    out_file = changeExt(args->input_files[0], ".bc");
-                }
-                if (LLVMWriteBitcodeToFile(linked_module, out_file)) {
-                    addError(error_context, "Failed to output LLVM BC", NOPOS, ERROR);
-                    LLVMDisposeMessage(error_msg);
-                }
-                if (args->output_file == NULL) {
-                    free(out_file);
-                }
-            } else if (args->emit_format == EMIT_ASM) {
-                char* out_file = args->output_file;
-                if (out_file == NULL) {
-                    out_file = changeExt(args->input_files[0], ".s");
-                }
-                if (LLVMTargetMachineEmitToFile(target_machine, linked_module, out_file, LLVMAssemblyFile, &error_msg)) {
-                    addErrorf(error_context, NOPOS, ERROR, "Failed to output assembly: %s", error_msg);
-                    LLVMDisposeMessage(error_msg);
-                }
-                if (args->output_file == NULL) {
-                    free(out_file);
-                }
-            } else if (args->emit_format == EMIT_OBJ) {
-                char* out_file = args->output_file;
-                if (out_file == NULL) {
-                    out_file = changeExt(args->input_files[0], ".o");
-                }
-                if (LLVMTargetMachineEmitToFile(target_machine, linked_module, out_file, LLVMObjectFile, &error_msg)) {
-                    addErrorf(error_context, NOPOS, ERROR, "Failed to output object: %s", error_msg);
-                    LLVMDisposeMessage(error_msg);
-                }
-                if (args->output_file == NULL) {
-                    free(out_file);
-                }
-            } else if (args->emit_format == EMIT_LINK) {
-                char* out_file = args->output_file;
-                if (out_file == NULL) {
-                    out_file = changeExt(args->input_files[0], "");
-                }
-                int tmp_len = strlen(TMP_OBJECT_NAME_PREFIX);
-                char tmp_object_file[100] = TMP_OBJECT_NAME_PREFIX;
-                uuidv4(tmp_object_file + tmp_len);
-                tmp_object_file[tmp_len + 32] = '.';
-                tmp_object_file[tmp_len + 32 + 1] = 'o';
-                tmp_object_file[tmp_len + 32 + 2] = 0;
-                if (LLVMTargetMachineEmitToFile(target_machine, linked_module, tmp_object_file, LLVMObjectFile, &error_msg)) {
-                    addErrorf(error_context, NOPOS, ERROR, "Failed to generate object: %s", error_msg);
-                    LLVMDisposeMessage(error_msg);
-                } else {
-                    // TODO: maybe link with different program (currently using cc)
-                    int obj_asm_count = 0;
-                    for (int i = 0; i < args->input_file_count; i++) {
-                        if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) {
-                            obj_asm_count++;
-                        }
-                    }
-                    int argc = 4 + obj_asm_count + args->library_count + args->library_directory_count;
-                    char** argv = (char**)malloc(sizeof(char*) * (argc + 1));
-                    argv[0] = "cc";
-                    argv[1] = "-o";
-                    argv[2] = out_file;
-                    argv[3] = tmp_object_file;
-                    for (int i = 0; i < args->input_file_count; i++) {
-                        if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) {
-                            argv[4 + i] = args->input_files[i];
-                        }
-                    }
-                    for (int i = 0; i < args->library_directory_count; i++) {
-                        int len = strlen(args->library_directories[i]);
-                        argv[4 + obj_asm_count + i] = (char*)malloc(len + 3);
-                        argv[4 + obj_asm_count + i][0] = '-';
-                        argv[4 + obj_asm_count + i][1] = 'L';
-                        memcpy(argv[4 + obj_asm_count + i] + 2, args->library_directories[i], len + 1);
-                    }
-                    for (int i = 0; i < args->library_count; i++) {
-                        int len = strlen(args->libraries[i]);
-                        argv[4 + obj_asm_count + args->library_directory_count + i] = (char*)malloc(len + 3);
-                        argv[4 + obj_asm_count + args->library_directory_count + i][0] = '-';
-                        argv[4 + obj_asm_count + args->library_directory_count + i][1] = 'l';
-                        memcpy(argv[4 + obj_asm_count + args->library_directory_count + i] + 2, args->libraries[i], len + 1);
-                    }
-                    argv[argc] = NULL;
-                    char* out = (char*)malloc(MAX_LINK_ERROR);
-                    if (exec("cc", argv, out, MAX_LINK_ERROR)) {
-                        addError(error_context, out, NOPOS, ERROR);
-                    }
-                    free(out);
-                    for (int i = 0; i < args->library_directory_count; i++) {
-                        free(argv[4 + obj_asm_count + i]);
-                    }
-                    for (int i = 0; i < args->library_count; i++) {
-                        free(argv[4 + obj_asm_count + args->library_directory_count + i]);
-                    }
-                    free(argv);
-                    remove(tmp_object_file);
-                }
-                if (args->output_file == NULL) {
-                    free(out_file);
-                }
-            }
-            LLVMPassManagerBuilderDispose(pass_manager_builder);
-            LLVMDisposePassManager(module_pass_manager);
-            LLVMDisposeTargetData(data_layout);
-            LLVMDisposeTargetMachine(target_machine);
-            LLVMDisposeModule(linked_module);
+    if(args->emit_format == EMIT_JIT) {
+        if(args->target != NULL) {
+            addError(error_context, "Target options will be ignored when using JIT", NOPOS, WARNING);
         }
-        LLVMDisposeMessage(host_triple);
+        runModuleInJIT(linked_module, args, error_context);
+    } else {
+        char* host_triple = LLVMGetDefaultTargetTriple();
+        char* triple = NULL;
+        if (args->target != NULL && strcmp(host_triple, args->target) != 0) {
+            triple = args->target;
+        } else {
+            triple = host_triple;
+        }
+        LLVMTargetRef target = NULL;
+        LLVMInitializeAllTargetInfos();
+        LLVMInitializeAllTargets();
+        LLVMInitializeAllAsmPrinters();
+        LLVMInitializeAllTargetMCs();
+        if (LLVMGetTargetFromTriple(triple, &target, &error_msg)) {
+            addError(error_context, error_msg, NOPOS, ERROR);
+            LLVMDisposeMessage(error_msg);
+        } else {
+            if (linked_module != NULL && getErrorCount(error_context) == 0) {
+                LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelDefault;
+                switch (max(args->size_opt, args->speed_opt)) {
+                case 0:
+                    opt_level = LLVMCodeGenLevelNone;
+                    break;
+                case 1:
+                    opt_level = LLVMCodeGenLevelLess;
+                    break;
+                case 2:
+                    opt_level = LLVMCodeGenLevelDefault;
+                    break;
+                case 3:
+                    opt_level = LLVMCodeGenLevelAggressive;
+                    break;
+                }
+                LLVMTargetMachineRef target_machine = LLVMCreateTargetMachine(target, triple, "", "", opt_level, LLVMRelocPIC, LLVMCodeModelDefault);
+                LLVMTargetDataRef data_layout = LLVMCreateTargetDataLayout(target_machine);
+                LLVMSetTarget(linked_module, triple);
+                LLVMSetModuleDataLayout(linked_module, data_layout);
+                LLVMPassManagerRef module_pass_manager = LLVMCreatePassManager();
+                LLVMPassManagerBuilderRef pass_manager_builder = LLVMPassManagerBuilderCreate();
+                LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, args->speed_opt);
+                LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, args->size_opt);
+                if (args->size_opt == 0 && args->speed_opt > 1) {
+                    LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, args->speed_opt * 100);
+                }
+                LLVMAddAnalysisPasses(target_machine, module_pass_manager);
+                LLVMAddVerifierPass(module_pass_manager);
+                LLVMAddCFGSimplificationPass(module_pass_manager);
+                LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, module_pass_manager);
+                if (!args->compiler_debug) {
+                    LLVMRunPassManager(module_pass_manager, linked_module);
+                }
+                if (args->emit_format == EMIT_LLVM_IR) {
+                    char* out_file = args->output_file;
+                    if (out_file == NULL) {
+                        out_file = changeExt(args->input_files[0], ".ll");
+                    }
+                    if (LLVMPrintModuleToFile(linked_module, out_file, &error_msg)) {
+                        addErrorf(error_context, NOPOS, ERROR, "Failed to output LLVM IR: %s", error_msg);
+                        LLVMDisposeMessage(error_msg);
+                    }
+                    if (args->output_file == NULL) {
+                        free(out_file);
+                    }
+                } else if (args->emit_format == EMIT_LLVM_BC) {
+                    char* out_file = args->output_file;
+                    if (out_file == NULL) {
+                        out_file = changeExt(args->input_files[0], ".bc");
+                    }
+                    if (LLVMWriteBitcodeToFile(linked_module, out_file)) {
+                        addError(error_context, "Failed to output LLVM BC", NOPOS, ERROR);
+                        LLVMDisposeMessage(error_msg);
+                    }
+                    if (args->output_file == NULL) {
+                        free(out_file);
+                    }
+                } else if (args->emit_format == EMIT_ASM) {
+                    char* out_file = args->output_file;
+                    if (out_file == NULL) {
+                        out_file = changeExt(args->input_files[0], ".s");
+                    }
+                    if (LLVMTargetMachineEmitToFile(target_machine, linked_module, out_file, LLVMAssemblyFile, &error_msg)) {
+                        addErrorf(error_context, NOPOS, ERROR, "Failed to output assembly: %s", error_msg);
+                        LLVMDisposeMessage(error_msg);
+                    }
+                    if (args->output_file == NULL) {
+                        free(out_file);
+                    }
+                } else if (args->emit_format == EMIT_OBJ) {
+                    char* out_file = args->output_file;
+                    if (out_file == NULL) {
+                        out_file = changeExt(args->input_files[0], ".o");
+                    }
+                    if (LLVMTargetMachineEmitToFile(target_machine, linked_module, out_file, LLVMObjectFile, &error_msg)) {
+                        addErrorf(error_context, NOPOS, ERROR, "Failed to output object: %s", error_msg);
+                        LLVMDisposeMessage(error_msg);
+                    }
+                    if (args->output_file == NULL) {
+                        free(out_file);
+                    }
+                } else if (args->emit_format == EMIT_LINK) {
+                    char* out_file = args->output_file;
+                    if (out_file == NULL) {
+                        out_file = changeExt(args->input_files[0], "");
+                    }
+                    int tmp_len = strlen(TMP_OBJECT_NAME_PREFIX);
+                    char tmp_object_file[100] = TMP_OBJECT_NAME_PREFIX;
+                    uuidv4(tmp_object_file + tmp_len);
+                    tmp_object_file[tmp_len + 32] = '.';
+                    tmp_object_file[tmp_len + 32 + 1] = 'o';
+                    tmp_object_file[tmp_len + 32 + 2] = 0;
+                    if (LLVMTargetMachineEmitToFile(target_machine, linked_module, tmp_object_file, LLVMObjectFile, &error_msg)) {
+                        addErrorf(error_context, NOPOS, ERROR, "Failed to generate object: %s", error_msg);
+                        LLVMDisposeMessage(error_msg);
+                    } else {
+                        // TODO: maybe link with different program (currently using cc)
+                        int obj_asm_count = 0;
+                        for (int i = 0; i < args->input_file_count; i++) {
+                            if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) {
+                                obj_asm_count++;
+                            }
+                        }
+                        int argc = 4 + obj_asm_count + args->library_count + args->library_directory_count;
+                        char** argv = (char**)malloc(sizeof(char*) * (argc + 1));
+                        argv[0] = "cc";
+                        argv[1] = "-o";
+                        argv[2] = out_file;
+                        argv[3] = tmp_object_file;
+                        for (int i = 0; i < args->input_file_count; i++) {
+                            if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) {
+                                argv[4 + i] = args->input_files[i];
+                            }
+                        }
+                        for (int i = 0; i < args->library_directory_count; i++) {
+                            int len = strlen(args->library_directories[i]);
+                            argv[4 + obj_asm_count + i] = (char*)malloc(len + 3);
+                            argv[4 + obj_asm_count + i][0] = '-';
+                            argv[4 + obj_asm_count + i][1] = 'L';
+                            memcpy(argv[4 + obj_asm_count + i] + 2, args->library_directories[i], len + 1);
+                        }
+                        for (int i = 0; i < args->library_count; i++) {
+                            int len = strlen(args->libraries[i]);
+                            argv[4 + obj_asm_count + args->library_directory_count + i] = (char*)malloc(len + 3);
+                            argv[4 + obj_asm_count + args->library_directory_count + i][0] = '-';
+                            argv[4 + obj_asm_count + args->library_directory_count + i][1] = 'l';
+                            memcpy(argv[4 + obj_asm_count + args->library_directory_count + i] + 2, args->libraries[i], len + 1);
+                        }
+                        argv[argc] = NULL;
+                        char* out = (char*)malloc(MAX_LINK_ERROR);
+                        if (exec("cc", argv, out, MAX_LINK_ERROR)) {
+                            addError(error_context, out, NOPOS, ERROR);
+                        }
+                        free(out);
+                        for (int i = 0; i < args->library_directory_count; i++) {
+                            free(argv[4 + obj_asm_count + i]);
+                        }
+                        for (int i = 0; i < args->library_count; i++) {
+                            free(argv[4 + obj_asm_count + args->library_directory_count + i]);
+                        }
+                        free(argv);
+                        remove(tmp_object_file);
+                    }
+                    if (args->output_file == NULL) {
+                        free(out_file);
+                    }
+                }
+                LLVMPassManagerBuilderDispose(pass_manager_builder);
+                LLVMDisposePassManager(module_pass_manager);
+                LLVMDisposeTargetData(data_layout);
+                LLVMDisposeTargetMachine(target_machine);
+                LLVMDisposeModule(linked_module);
+            }
+            LLVMDisposeMessage(host_triple);
+        }
     }
     deinitLLVM();
 }

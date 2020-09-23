@@ -12,6 +12,7 @@ typedef enum {
     EMIT_LINK,
     EMIT_OBJ,
     EMIT_ASM,
+    EMIT_JIT,
 } EmitFormat;
 
 typedef struct {
