@@ -103,7 +103,7 @@ static void scanNextToken(Scanner* scanner) {
     pushTokenToCache(scanner, next_token);
 }
 
-bool test(Scanner* scanner, int n, TokenType type) {
+bool testForToken(Scanner* scanner, int n, TokenType type) {
     for (int i = scanner->token_cache_count; i <= n; i++) {
         scanNextToken(scanner);
     }
@@ -111,7 +111,7 @@ bool test(Scanner* scanner, int n, TokenType type) {
     return type == token.type;
 }
 
-bool accept(Scanner* scanner, TokenType type) {
+bool acceptToken(Scanner* scanner, TokenType type) {
     if (scanner->token_cache_count == 0) {
         scanNextToken(scanner);
     }
@@ -123,7 +123,7 @@ bool accept(Scanner* scanner, TokenType type) {
     return ret;
 }
 
-bool consume(Scanner* scanner, TokenType type, Token* token) {
+bool consumeToken(Scanner* scanner, TokenType type, Token* token) {
     if (scanner->token_cache_count == 0) {
         scanNextToken(scanner);
     }
