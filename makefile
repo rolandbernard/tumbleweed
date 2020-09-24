@@ -35,6 +35,10 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	mkdir -p `dirname $@`
 	$(CC) $(CFLAGS) -c -o $@ $<
 	
+.PHONY: check
+check:
+	./test/run-test.sh ./test/tests/
+	
 .PHONY: clean
 clean:
 	rm -fr $(ODIR)/*

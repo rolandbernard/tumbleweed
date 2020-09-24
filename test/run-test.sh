@@ -20,7 +20,12 @@ function runTest {
                 echo -e "\e[32mPassed\e[m test '$3'"
                 passed_count=$(expr $passed_count + 1)
             else
-                echo -e "\e[31mFailed\e[m test '$3' at runtime ($?)"
+                if [ $? == 124 ]
+                then
+                    echo -e "\e[31mFailed\e[m test '$3' with timeout"
+                else
+                    echo -e "\e[31mFailed\e[m test '$3' at runtime ($?)"
+                fi
                 failed_count=$(expr $failed_count + 1)
             fi
         else
