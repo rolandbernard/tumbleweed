@@ -38,7 +38,7 @@ void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
             if(strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
                 args->help = true;
             } else if(strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
-                args->help = true;
+                args->version = true;
             } else if(strcmp(argv[i], "-g") == 0 || strcmp(argv[i], "--debug") == 0) {
                 args->debug = true;
             } else if(strcmp(argv[i], "--compiler-debug") == 0) {
