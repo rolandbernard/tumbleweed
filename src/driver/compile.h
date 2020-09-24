@@ -5,6 +5,6 @@
 #include "driver/error.h"
 #include "driver/file.h"
 
-void compile(Args* args, ErrorContext* error_context, FileSet* file_set);
+int compile(Args* args, ErrorContext* error_context, FileSet* file_set);
 
 #endif

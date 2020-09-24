@@ -63,7 +63,8 @@ static bool testExt(const char* file, const char* ext) {
     return true;
 }
 
-void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
+int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
+    int ret = 0;
     initLLVM();
     char* error_msg;
     for (int i = 0; i < args->input_file_count; i++) {
@@ -106,6 +107,10 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         id[id_length - 1] = 0;
         linked_module = LLVMModuleCreateWithName(id);
         free(id);
+    }
+    if (args->emit_format == EMIT_JIT && args->debug) {
+        args->debug = false;
+        addError(error_context, "Debug option will be ignored when using JIT", NOPOS, WARNING);
     }
     for (int i = 0; i < file_set->file_count; i++) {
         File* file = &file_set->files[i];
@@ -155,7 +160,11 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         if(args->target != NULL) {
             addError(error_context, "Target options will be ignored when using JIT", NOPOS, WARNING);
         }
-        runModuleInJIT(linked_module, args, error_context);
+        if(linked_module != NULL && getErrorCount(error_context) == 0) {
+            ret = runModuleInJIT(linked_module, args, error_context);
+        } else {
+            ret = getErrorCount(error_context) != 0 ? 125 : 0;
+        }
     } else {
         char* host_triple = LLVMGetDefaultTargetTriple();
         char* triple = NULL;
@@ -329,6 +338,8 @@ void compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
             }
             LLVMDisposeMessage(host_triple);
         }
+        ret = getErrorCount(error_context) != 0 ? 125 : 0;
     }
     deinitLLVM();
+    return ret;
 }

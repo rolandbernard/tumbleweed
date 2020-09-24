@@ -6,6 +6,6 @@
 #include "driver/args.h"
 #include "driver/error.h"
 
-void runModuleInJIT(LLVMModuleRef module, Args* args, ErrorContext* error_context);
+int runModuleInJIT(LLVMModuleRef module, Args* args, ErrorContext* error_context);
 
 #endif

@@ -24,10 +24,7 @@ int main(int argc, char** argv) {
     } else if(args.version) {
         fprintf(stderr, "Version: %s\n", COMPILER_NAME);
     } else if(args.input_file_count > 0) {
-        compile(&args, &errors, &fs);
-        if(getErrorCount(&errors) != 0) {
-            ret = EXIT_FAILURE;
-        }
+        ret = compile(&args, &errors, &fs);
     }
     printErrors(stderr, &errors, &fs);
     freeFileSet(&fs);
