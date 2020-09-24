@@ -36,7 +36,7 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 	
 .PHONY: check
-check:
+check: all
 	./test/run-test.sh ./test/tests/
 	
 .PHONY: clean
