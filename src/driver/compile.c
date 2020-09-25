@@ -157,8 +157,8 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         }
     }
     if(args->emit_format == EMIT_JIT) {
-        if(args->target != NULL) {
-            addError(error_context, "Target options will be ignored when using JIT", NOPOS, WARNING);
+        if(args->target != NULL && !args->force_target) {
+            addError(error_context, "Target options will be ignored when using JIT, force the target using --force-target", NOPOS, WARNING);
         }
         if(linked_module != NULL && getErrorCount(error_context) == 0) {
             ret = runModuleInJIT(linked_module, args, error_context);
@@ -166,6 +166,12 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
             ret = getErrorCount(error_context) != 0 ? 125 : 0;
         }
     } else {
+        if(args->force_interpreter) {
+            addError(error_context, "The --force-interpreter option is only relevant when using JIT", NOPOS, WARNING);
+        }
+        if(args->force_target) {
+            addError(error_context, "The --force-target option is only relevant when using JIT", NOPOS, WARNING);
+        }
         char* host_triple = LLVMGetDefaultTargetTriple();
         char* triple = NULL;
         if (args->target != NULL && strcmp(host_triple, args->target) != 0) {

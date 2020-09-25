@@ -21,9 +21,17 @@ const Args default_args = {
     .libraries = NULL,
     .library_directory_count = 0,
     .library_directories = NULL,
+    .argc = 0,
+    .argv = NULL,
+    .env = NULL,
+    .force_target = false,
+    .force_interpreter = false,
 };
 
-void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
+void parseArgs(int argc, const char* const* argv, const char* const* env, Args* args, ErrorContext* error_context) {
+    args->argc = argc;
+    args->argv = argv;
+    args->env = env;
     *args = default_args;
     ArrayList files;
     initArrayList(&files);
@@ -103,14 +111,18 @@ void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
                 if(i >= argc) {
                     addError(error_context, "Option is missing the target value, ignoring the option", NOPOS, WARNING);
                 } else {
-                    args->target = argv[i];
+                    args->target = (char*)argv[i];
                 }
+            } else if(strcmp(argv[i], "--force-target") == 0) {
+                args->force_target = true;
+            } else if(strcmp(argv[i], "--force-interpreter") == 0) {
+                args->force_interpreter = true;
             } else if(strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) {
                 i++;
                 if(i >= argc) {
                     addError(error_context, "Option is missing the output filepath, ignoring the option", NOPOS, WARNING);
                 } else {
-                    args->output_file = argv[i];
+                    args->output_file = (char*)argv[i];
                 }
             } else {
                 addErrorf(error_context, NOPOS, WARNING, "The unknown option '%s' will be ignored", argv[i]);
@@ -127,20 +139,22 @@ void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context) {
     args->library_directories = (char**)library_directories.data;
 }
 
-void printHelpText(FILE* file, int argc, char** argv) {
+void printHelpText(FILE* file, int argc, const char* const* argv) {
     fprintf(file, "Usage: %s [options] file...\n", argv[0]);
     fprintf(file, "Options:\n");
-    fprintf(file, "    -h, --help              Print out this help text.\n");
-    fprintf(file, "    -g, --debug             Include debug information in the build.\n");
-    fprintf(file, "    -O0, -O1, -O2, -O3      Set the speed optimization level. (default: -O1)\n");
-    fprintf(file, "    -Os, -Oz                Set the size optimization level.\n");
+    fprintf(file, "    -h, --help                Print out this help text.\n");
+    fprintf(file, "    -g, --debug               Include debug information in the build.\n");
+    fprintf(file, "    -O0, -O1, -O2, -O3        Set the speed optimization level. (default: -O1)\n");
+    fprintf(file, "    -Os, -Oz                  Set the size optimization level.\n");
     fprintf(file, "    -e, --emit [llvm-bc|llvm-ir|asm|obj|link|jit]\n");
-    fprintf(file, "                            Set the type that should be generated. (default: link|obj)\n");
-    fprintf(file, "    -t, --target TARGET     Set the target to compile for. (default: host)\n");
-    fprintf(file, "    -o, --output FILE       Output the result to the given file.\n");
-    fprintf(file, "    -l NAME                 Add the given library to the linker.\n");
-    fprintf(file, "    -L PATH                 Add the given path to the possible library locations.\n");
-    fprintf(file, "    -v, --version           Output the compiler version\n");
+    fprintf(file, "                              Set the type that should be generated. (default: link|obj)\n");
+    fprintf(file, "    -t, --target TARGET       Set the target to compile for. (default: host)\n");
+    fprintf(file, "        --force-target        Run the JIT for the selected target, ignoring the host target\n");
+    fprintf(file, "        --force-interpreter   Run the interpreter even if JIT is supported\n");
+    fprintf(file, "    -o, --output FILE         Output the result to the given file.\n");
+    fprintf(file, "    -l NAME                   Add the given library to the linker.\n");
+    fprintf(file, "    -L PATH                   Add the given path to the possible library locations.\n");
+    fprintf(file, "    -v, --version             Output the compiler version\n");
 }  
 
 void freeArgs(Args* args) {

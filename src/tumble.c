@@ -10,13 +10,13 @@
 #include "driver/args.h"
 #include "driver/compile.h"
 
-int main(int argc, char** argv) {
+int main(int argc, const char* const* argv, const char* const* env) {
     int ret = EXIT_SUCCESS;
 
     ErrorContext errors;
     initErrorContext(&errors);
     Args args;
-    parseArgs(argc, argv, &args, &errors);
+    parseArgs(argc, argv, env, &args, &errors);
     FileSet fs;
     initFileSet(&fs);
     if(args.help) {
