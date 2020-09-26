@@ -17,6 +17,7 @@
 #include "codegen/codegen.h"
 #include "common/exec.h"
 #include "driver/jit.h"
+#include "common/arraylist.h"
 
 #define TMP_OBJECT_NAME_PREFIX "/tmp/tumbleweed_tmp_obj."
 #define MAX_LINK_ERROR 1000000
@@ -80,7 +81,7 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
                 addErrorf(error_context, NOPOS, ERROR, "%s: File can not be found", args->input_files[i]);
             }
             free(path);
-        } else if ((testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) && args->emit_format != EMIT_LINK) {
+        } else if ((testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s") || testExt(args->input_files[i], ".c")) && args->emit_format != EMIT_LINK) {
             addErrorf(error_context, NOPOS, WARNING, "%s: Not linking, objects and assembly will be ignored", args->input_files[i]);
         }
     }
@@ -286,50 +287,48 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
                         LLVMDisposeMessage(error_msg);
                     } else {
                         // TODO: maybe link with different program (currently using cc)
-                        int obj_asm_count = 0;
+                        ArrayList argv_to_free;
+                        initArrayList(&argv_to_free);
+                        ArrayList argv;
+                        initArrayList(&argv);
+                        pushToArrayList(&argv, (void*)"cc");
+                        pushToArrayList(&argv, (void*)"-o");
+                        pushToArrayList(&argv, (void*)out_file);
+                        pushToArrayList(&argv, (void*)tmp_object_file);
                         for (int i = 0; i < args->input_file_count; i++) {
-                            if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) {
-                                obj_asm_count++;
-                            }
-                        }
-                        int argc = 4 + obj_asm_count + args->library_count + args->library_directory_count;
-                        char** argv = (char**)malloc(sizeof(char*) * (argc + 1));
-                        argv[0] = "cc";
-                        argv[1] = "-o";
-                        argv[2] = out_file;
-                        argv[3] = tmp_object_file;
-                        for (int i = 0; i < args->input_file_count; i++) {
-                            if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s")) {
-                                argv[4 + i] = args->input_files[i];
+                            if (testExt(args->input_files[i], ".o") || testExt(args->input_files[i], ".s") || testExt(args->input_files[i], ".c")) {
+                                pushToArrayList(&argv, (void*)args->input_files[i]);
                             }
                         }
                         for (int i = 0; i < args->library_directory_count; i++) {
                             int len = strlen(args->library_directories[i]);
-                            argv[4 + obj_asm_count + i] = (char*)malloc(len + 3);
-                            argv[4 + obj_asm_count + i][0] = '-';
-                            argv[4 + obj_asm_count + i][1] = 'L';
-                            memcpy(argv[4 + obj_asm_count + i] + 2, args->library_directories[i], len + 1);
+                            char* str = (char*)malloc(len + 3);
+                            str[0] = '-';
+                            str[1] = 'L';
+                            memcpy(str + 2, args->library_directories[i], len + 1);
+                            pushToArrayList(&argv, (void*)str);
+                            pushToArrayList(&argv_to_free, (void*)str);
                         }
                         for (int i = 0; i < args->library_count; i++) {
                             int len = strlen(args->libraries[i]);
-                            argv[4 + obj_asm_count + args->library_directory_count + i] = (char*)malloc(len + 3);
-                            argv[4 + obj_asm_count + args->library_directory_count + i][0] = '-';
-                            argv[4 + obj_asm_count + args->library_directory_count + i][1] = 'l';
-                            memcpy(argv[4 + obj_asm_count + args->library_directory_count + i] + 2, args->libraries[i], len + 1);
+                            char* str = (char*)malloc(len + 3);
+                            str[0] = '-';
+                            str[1] = 'l';
+                            memcpy(str + 2, args->libraries[i], len + 1);
+                            pushToArrayList(&argv, (void*)str);
+                            pushToArrayList(&argv_to_free, (void*)str);
                         }
-                        argv[argc] = NULL;
+                        pushToArrayList(&argv, NULL);
                         char* out = (char*)malloc(MAX_LINK_ERROR);
-                        if (exec("cc", argv, out, MAX_LINK_ERROR)) {
+                        if (exec("cc", (char**)argv.data, out, MAX_LINK_ERROR)) {
                             addError(error_context, out, NOPOS, ERROR);
                         }
                         free(out);
-                        for (int i = 0; i < args->library_directory_count; i++) {
-                            free(argv[4 + obj_asm_count + i]);
+                        freeArrayList(&argv);
+                        for(int i = 0; i < argv_to_free.count; i++) {
+                            free(argv_to_free.data[i]);
                         }
-                        for (int i = 0; i < args->library_count; i++) {
-                            free(argv[4 + obj_asm_count + args->library_directory_count + i]);
-                        }
-                        free(argv);
+                        freeArrayList(&argv_to_free);
                         remove(tmp_object_file);
                     }
                     if (args->output_file == NULL) {
