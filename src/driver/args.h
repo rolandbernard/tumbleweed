@@ -31,11 +31,16 @@ typedef struct {
     char** libraries;
     int library_directory_count;
     char** library_directories;
+    int argc;
+    const char* const* argv;
+    const char* const* env;
+    bool force_target;
+    bool force_interpreter;
 } Args;
 
-void parseArgs(int argc, char** argv, Args* args, ErrorContext* error_context);
+void parseArgs(int argc, const char* const* argv, const char* const* env, Args* args, ErrorContext* error_context);
 
-void printHelpText(FILE* file, int argc, char** argv);
+void printHelpText(FILE* file, int argc, const char* const* argv);
 
 void freeArgs(Args* args);
 

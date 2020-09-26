@@ -19,11 +19,11 @@ void initScanner(Scanner* scanner, const File* file);
 
 void freeScanner(Scanner* scanner);
 
-bool test(Scanner* scanner, int n, TokenType type);
+bool testForToken(Scanner* scanner, int n, TokenType type);
 
-bool accept(Scanner* scanner, TokenType type);
+bool acceptToken(Scanner* scanner, TokenType type);
 
-bool consume(Scanner* scanner, TokenType type, Token* token);
+bool consumeToken(Scanner* scanner, TokenType type, Token* token);
 
 void getToken(Scanner* scanner, Token* token);
 

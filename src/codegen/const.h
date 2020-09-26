@@ -1,5 +1,5 @@
 #ifndef _CONST_H_
-#define _cONST_H_
+#define _CONST_H_
 
 #include <llvm-c/Core.h>
 

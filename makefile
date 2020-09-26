@@ -10,7 +10,7 @@ LLVMCONF=llvm-config
 DFLAGS=-g -O0 -fsanitize=address,undefined
 RFLAGS=-O3
 CFLAGS=`$(LLVMCONF) --cflags` -I$(IDIR) -Wall $(RFLAGS)
-LIBS=`$(LLVMCONF) --ldflags --libs --link-static` -lpthread -lncurses -ldl -lz
+LIBS=`$(LLVMCONF) --ldflags --libs --system-libs`
 
 _SRC=$(wildcard $(SDIR)/*/*.c) $(wildcard $(SDIR)/*.c)
 OBJ=$(patsubst $(SDIR)/%.c,$(ODIR)/%.o,$(_SRC))
@@ -36,7 +36,7 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 	
 .PHONY: check
-check:
+check: all
 	./test/run-test.sh ./test/tests/
 	
 .PHONY: clean

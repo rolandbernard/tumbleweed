@@ -82,7 +82,7 @@ static bool expectToken(Scanner* scanner, TokenType type, ErrorContext* error_co
     if (token == NULL) {
         token = &tmp_token;
     }
-    if (consume(scanner, type, token)) {
+    if (consumeToken(scanner, type, token)) {
         return true;
     } else {
         addErrorf(error_context, token->start, ERROR, "Expected a '%s' but found a '%s'", getTokenName(type), getTokenName(token->type));
@@ -102,7 +102,7 @@ static Ast* parseType(Scanner* scanner, ErrorContext* error_context) { return pa
 
 static AstIfElse* parseIf(Scanner* scanner, ErrorContext* error_context) {
     Token first;
-    if (consume(scanner, TOKEN_IF, &first)) {
+    if (consumeToken(scanner, TOKEN_IF, &first)) {
         Ast* condition = NULL;
         Ast* if_block = NULL;
         Ast* else_block = NULL;
@@ -112,15 +112,15 @@ static AstIfElse* parseIf(Scanner* scanner, ErrorContext* error_context) {
             if (if_block != PARSE_ERROR) { 
                 Token last;
                 if(if_block == NULL || if_block->type != AST_CODE_BLOCK) {
-                    consume(scanner, TOKEN_SEMICOLON, &last);
+                    consumeToken(scanner, TOKEN_SEMICOLON, &last);
                 }
-                if (accept(scanner, TOKEN_ELSE)) {
+                if (acceptToken(scanner, TOKEN_ELSE)) {
                     else_block = (Ast*)parseStatment(scanner, error_context);
                     if (else_block == PARSE_ERROR) {
                         goto failed;
                     }
                     if(else_block == NULL || else_block->type != AST_CODE_BLOCK) {
-                        consume(scanner, TOKEN_SEMICOLON, &last);
+                        consumeToken(scanner, TOKEN_SEMICOLON, &last);
                     }
                 }
                 AstIfElse* ret = (AstIfElse*)malloc(sizeof(AstIfElse));
@@ -147,7 +147,7 @@ static AstIfElse* parseIf(Scanner* scanner, ErrorContext* error_context) {
 
 static Ast* parseFor(Scanner* scanner, ErrorContext* error_context) {
     Token first;
-    if (consume(scanner, TOKEN_FOR, &first)) {
+    if (consumeToken(scanner, TOKEN_FOR, &first)) {
         Ast* condition = NULL;
         Ast* body = NULL;
         condition = parseExpression(scanner, error_context);
@@ -156,7 +156,7 @@ static Ast* parseFor(Scanner* scanner, ErrorContext* error_context) {
             if (body != PARSE_ERROR) {
                 Token last;
                 if(body == NULL || body->type != AST_CODE_BLOCK) {
-                    consume(scanner, TOKEN_SEMICOLON, &last);
+                    consumeToken(scanner, TOKEN_SEMICOLON, &last);
                 }
                 AstForLoop* ret = (AstForLoop*)malloc(sizeof(AstForLoop));
                 ret->type = AST_FOR_LOOP;
@@ -177,7 +177,7 @@ static Ast* parseFor(Scanner* scanner, ErrorContext* error_context) {
 // return
 static Ast* parseDirective(Scanner* scanner, ErrorContext* error_context) {
     Token first;
-    if (consume(scanner, TOKEN_RETURN, &first)) {
+    if (consumeToken(scanner, TOKEN_RETURN, &first)) {
         Ast* value = parseExpression(scanner, error_context);
         if (value == PARSE_ERROR) {
             return PARSE_ERROR;
@@ -194,7 +194,7 @@ static Ast* parseDirective(Scanner* scanner, ErrorContext* error_context) {
 
 static Ast* parseAssignmentOrVariableDefinitionOrExpression(Scanner* scanner, ErrorContext* error_context) {
     Token first;
-    consume(scanner, TOKEN_NONE, &first);
+    consumeToken(scanner, TOKEN_NONE, &first);
     Ast* destination = parseExpression(scanner, error_context);
     if (destination == PARSE_ERROR) {
         goto failed;
@@ -203,7 +203,7 @@ static Ast* parseAssignmentOrVariableDefinitionOrExpression(Scanner* scanner, Er
         return NULL;
     }
     Token action;
-    if (accept(scanner, TOKEN_COLON)) {
+    if (acceptToken(scanner, TOKEN_COLON)) {
         if (destination->type != AST_VARIABLE_ACCESS) {
             addError(error_context, "The expression is not a variable name", destination->start, ERROR);
             goto failed;
@@ -215,7 +215,7 @@ static Ast* parseAssignmentOrVariableDefinitionOrExpression(Scanner* scanner, Er
             }
             goto failed_definition;
         }            
-        if (accept(scanner, TOKEN_EQU)) {
+        if (acceptToken(scanner, TOKEN_EQU)) {
             Ast* value = parseExpression(scanner, error_context);
             if (value == PARSE_ERROR || value == NULL) {
                 if (value == NULL) {
@@ -251,7 +251,7 @@ static Ast* parseAssignmentOrVariableDefinitionOrExpression(Scanner* scanner, Er
     failed_definition:
         freeAst((Ast*)type);
         goto failed;
-    } else if (consume(scanner, TOKEN_EQU, &action) || consume(scanner, TOKEN_PIPE_EQU, &action) || consume(scanner, TOKEN_AND_EQU, &action) || consume(scanner, TOKEN_CARET_EQU, &action) || consume(scanner, TOKEN_DBL_GTR_EQU, &action) || consume(scanner, TOKEN_DBL_LES_EQU, &action) || consume(scanner, TOKEN_PLUS_EQU, &action) || consume(scanner, TOKEN_MINUS_EQU, &action) || consume(scanner, TOKEN_STAR_EQU, &action) || consume(scanner, TOKEN_SLASH_EQU, &action) || consume(scanner, TOKEN_PERCENT_EQU, &action) || consume(scanner, TOKEN_COLON_EQU, &action)) {
+    } else if (consumeToken(scanner, TOKEN_EQU, &action) || consumeToken(scanner, TOKEN_PIPE_EQU, &action) || consumeToken(scanner, TOKEN_AND_EQU, &action) || consumeToken(scanner, TOKEN_CARET_EQU, &action) || consumeToken(scanner, TOKEN_DBL_GTR_EQU, &action) || consumeToken(scanner, TOKEN_DBL_LES_EQU, &action) || consumeToken(scanner, TOKEN_PLUS_EQU, &action) || consumeToken(scanner, TOKEN_MINUS_EQU, &action) || consumeToken(scanner, TOKEN_STAR_EQU, &action) || consumeToken(scanner, TOKEN_SLASH_EQU, &action) || consumeToken(scanner, TOKEN_PERCENT_EQU, &action) || consumeToken(scanner, TOKEN_COLON_EQU, &action)) {
         if (action.type == TOKEN_COLON_EQU) {
             if (destination->type != AST_VARIABLE_ACCESS) {
                 addError(error_context, "The expression is not a variable name", destination->start, ERROR);
@@ -344,7 +344,7 @@ static Ast* parseStatment(Scanner* scanner, ErrorContext* error_context) {
 
 static AstCodeBlock* parseCodeBlock(Scanner* scanner, ErrorContext* error_context) {
     Token first;
-    if (consume(scanner, TOKEN_CURLY_OPEN, &first)) {
+    if (consumeToken(scanner, TOKEN_CURLY_OPEN, &first)) {
         ArrayList statments;
         initArrayList(&statments);
         Ast* statment = NULL;
@@ -353,7 +353,7 @@ static AstCodeBlock* parseCodeBlock(Scanner* scanner, ErrorContext* error_contex
                 goto failed;
             }
             pushToArrayList(&statments, (void*)statment);
-            while (accept(scanner, TOKEN_SEMICOLON))
+            while (acceptToken(scanner, TOKEN_SEMICOLON))
                 ;
         }
         Token last;
@@ -378,7 +378,7 @@ static AstCodeBlock* parseCodeBlock(Scanner* scanner, ErrorContext* error_contex
 
 static AstParameterDefinition* parseParameterDefinition(Scanner* scanner, ErrorContext* error_context) {
     Token name;
-    if (consume(scanner, TOKEN_IDENTIFIER, &name)) {
+    if (consumeToken(scanner, TOKEN_IDENTIFIER, &name)) {
         Ast* type = NULL;
         if(expectToken(scanner, TOKEN_COLON, error_context, NULL)) {
             type = parseType(scanner, error_context);
@@ -420,7 +420,7 @@ static void cleanNumberString(char* str) {
 
 static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_context) {
     Token first;
-    if (consume(scanner, TOKEN_INT_CONST, &first)) {
+    if (consumeToken(scanner, TOKEN_INT_CONST, &first)) {
         AstIntegerLiteral* ret = (AstIntegerLiteral*)malloc(sizeof(AstIntegerLiteral));
         ret->type = AST_INTEGER_LITERAL;
         ret->start = first.start;
@@ -428,7 +428,7 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
         ret->integer_string = getStringCopyFromFile(scanner->file, first.start, first.end);
         cleanNumberString(ret->integer_string);
         return (Ast*)ret;
-    } else if (consume(scanner, TOKEN_FLOAT_CONST, &first)) {
+    } else if (consumeToken(scanner, TOKEN_FLOAT_CONST, &first)) {
         AstFloatLiteral* ret = (AstFloatLiteral*)malloc(sizeof(AstFloatLiteral));
         ret->type = AST_FLOAT_LITERAL;
         ret->start = first.start;
@@ -436,14 +436,14 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
         ret->float_string = getStringCopyFromFile(scanner->file, first.start, first.end);
         cleanNumberString(ret->float_string);
         return (Ast*)ret;
-    } else if (consume(scanner, TOKEN_IDENTIFIER, &first)) {
+    } else if (consumeToken(scanner, TOKEN_IDENTIFIER, &first)) {
         AstVariableAccess* ret = (AstVariableAccess*)malloc(sizeof(AstVariableAccess));
         ret->type = AST_VARIABLE_ACCESS;
         ret->start = first.start;
         ret->end = first.end;
         ret->name = getStringCopyFromFile(scanner->file, first.start, first.end);
         return (Ast*)ret;
-    } else if(consume(scanner, TOKEN_ROUND_OPEN, &first)) {
+    } else if(consumeToken(scanner, TOKEN_ROUND_OPEN, &first)) {
         Ast* ret = parseExpression(scanner, error_context);
         if(ret == PARSE_ERROR || ret == NULL) {
             if(ret == NULL) {
@@ -456,7 +456,7 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
             return PARSE_ERROR;
         }
         return ret;
-    } else if (consume(scanner, TOKEN_STRING_CONST, &first)) {
+    } else if (consumeToken(scanner, TOKEN_STRING_CONST, &first)) {
         AstStringLiteral* ret = (AstStringLiteral*)malloc(sizeof(AstStringLiteral));
         ret->type = AST_STRING_LITERAL;
         ret->start = first.start;
@@ -483,7 +483,7 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
         }
         ret->string_content[new] = 0;
         return (Ast*)ret;
-    } else if (consume(scanner, TOKEN_CHAR_CONST, &first)) {
+    } else if (consumeToken(scanner, TOKEN_CHAR_CONST, &first)) {
         int character;
         char* content = getStringRefFromFile(scanner->file, first.start + 1);
         if (first.start + 3 == first.end) {
@@ -514,13 +514,13 @@ static Ast* parseExpressionLevelBase(Scanner* scanner, ErrorContext* error_conte
 static Ast* parseExpressionLevelPostfix(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelBase(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (test(scanner, 0, TOKEN_ROUND_OPEN) || test(scanner, 0, TOKEN_SQUARE_OPEN) || test(scanner, 0, TOKEN_DBL_PLUS) || test(scanner, 0, TOKEN_DBL_MINUS)) {
+        while (testForToken(scanner, 0, TOKEN_ROUND_OPEN) || testForToken(scanner, 0, TOKEN_SQUARE_OPEN) || testForToken(scanner, 0, TOKEN_DBL_PLUS) || testForToken(scanner, 0, TOKEN_DBL_MINUS)) {
             Token last;
-            if (accept(scanner, TOKEN_ROUND_OPEN)) {
+            if (acceptToken(scanner, TOKEN_ROUND_OPEN)) {
                 ArrayList parameters;
                 initArrayList(&parameters);
                 Ast* parameter;
-                while ((parameters.count == 0 || accept(scanner, TOKEN_COMMA)) && (parameter = parseExpression(scanner, error_context)) != NULL) {
+                while ((parameters.count == 0 || acceptToken(scanner, TOKEN_COMMA)) && (parameter = parseExpression(scanner, error_context)) != NULL) {
                     if (parameter == PARSE_ERROR) {
                         for (int i = 0; i < parameters.count; i++) {
                             freeAst((Ast*)parameters.data[i]);
@@ -546,7 +546,7 @@ static Ast* parseExpressionLevelPostfix(Scanner* scanner, ErrorContext* error_co
                 parent->parameter_count = parameters.count;
                 parent->parameters = (Ast**)parameters.data;
                 ret = (Ast*)parent;
-            } else if (accept(scanner, TOKEN_SQUARE_OPEN)) {
+            } else if (acceptToken(scanner, TOKEN_SQUARE_OPEN)) {
                 ArrayList parameters;
                 initArrayList(&parameters);
                 Ast* index = parseExpression(scanner, error_context);
@@ -568,14 +568,14 @@ static Ast* parseExpressionLevelPostfix(Scanner* scanner, ErrorContext* error_co
                 parent->pointer = ret;
                 parent->index = index;
                 ret = (Ast*)parent;
-            } else if (consume(scanner, TOKEN_DBL_PLUS, &last)) {
+            } else if (consumeToken(scanner, TOKEN_DBL_PLUS, &last)) {
                 AstUnaryOperation* parent = (AstUnaryOperation*)malloc(sizeof(AstUnaryOperation));
                 parent->type = AST_INCREMENT;
                 parent->start = ret->start;
                 parent->end = last.end;
                 parent->operand = ret;
                 ret = (Ast*)parent;
-            } else if (consume(scanner, TOKEN_DBL_MINUS, &last)) {
+            } else if (consumeToken(scanner, TOKEN_DBL_MINUS, &last)) {
                 AstUnaryOperation* parent = (AstUnaryOperation*)malloc(sizeof(AstUnaryOperation));
                 parent->type = AST_DECREMENT;
                 parent->start = ret->start;
@@ -594,20 +594,20 @@ static Ast* parseExpressionLevelPostfix(Scanner* scanner, ErrorContext* error_co
 
 /* - + * ~ ! & [] */
 static Ast* parseExpressionLevelUnary(Scanner* scanner, ErrorContext* error_context) {
-    if (test(scanner, 0, TOKEN_MINUS) || test(scanner, 0, TOKEN_PLUS) || test(scanner, 0, TOKEN_STAR) || test(scanner, 0, TOKEN_TILDE) || test(scanner, 0, TOKEN_EXCL) || test(scanner, 0, TOKEN_AND)){
+    if (testForToken(scanner, 0, TOKEN_MINUS) || testForToken(scanner, 0, TOKEN_PLUS) || testForToken(scanner, 0, TOKEN_STAR) || testForToken(scanner, 0, TOKEN_TILDE) || testForToken(scanner, 0, TOKEN_EXCL) || testForToken(scanner, 0, TOKEN_AND)){
         Token first;
         AstType type;
-        if (consume(scanner, TOKEN_MINUS, &first)) {
+        if (consumeToken(scanner, TOKEN_MINUS, &first)) {
             type = AST_NEGATIVE;
-        } else if (consume(scanner, TOKEN_PLUS, &first)) {
+        } else if (consumeToken(scanner, TOKEN_PLUS, &first)) {
             type = AST_POSITIVE;
-        } else if (consume(scanner, TOKEN_STAR, &first)) {
+        } else if (consumeToken(scanner, TOKEN_STAR, &first)) {
             type = AST_REFERENCE;
-        } else if (consume(scanner, TOKEN_TILDE, &first)) {
+        } else if (consumeToken(scanner, TOKEN_TILDE, &first)) {
             type = AST_NOT;
-        } else if(consume(scanner, TOKEN_EXCL, &first)) {
+        } else if(consumeToken(scanner, TOKEN_EXCL, &first)) {
             type = AST_BOOL_NOT;
-        } else if (consume(scanner, TOKEN_AND, &first)) {
+        } else if (consumeToken(scanner, TOKEN_AND, &first)) {
              type = AST_DEREFERENCE;
         }
         Ast* next = parseExpressionLevelUnary(scanner, error_context);
@@ -631,9 +631,9 @@ static Ast* parseExpressionLevelUnary(Scanner* scanner, ErrorContext* error_cont
             ret->operand = next;
             return (Ast*)ret;
         }
-    } else if (test(scanner, 0, TOKEN_SQUARE_OPEN)) {
+    } else if (testForToken(scanner, 0, TOKEN_SQUARE_OPEN)) {
         Token first;
-        consume(scanner, TOKEN_SQUARE_OPEN, &first);
+        consumeToken(scanner, TOKEN_SQUARE_OPEN, &first);
         Ast* number = parseExpression(scanner, error_context);
         if(number == NULL) {
             addError(error_context, "Expected an expression", getCurrentScannerPosition(scanner), ERROR);
@@ -664,13 +664,13 @@ static Ast* parseExpressionLevelUnary(Scanner* scanner, ErrorContext* error_cont
 static Ast* parseExpressionLevelMultiplicative(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelUnary(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (test(scanner, 0, TOKEN_STAR) || test(scanner, 0, TOKEN_SLASH) || test(scanner, 0, TOKEN_PERCENT)) {
+        while (testForToken(scanner, 0, TOKEN_STAR) || testForToken(scanner, 0, TOKEN_SLASH) || testForToken(scanner, 0, TOKEN_PERCENT)) {
             AstType type = AST_NONE;
-            if (accept(scanner, TOKEN_STAR)) {
+            if (acceptToken(scanner, TOKEN_STAR)) {
                 type = AST_MULTIPLY;
-            } else if (accept(scanner, TOKEN_SLASH)) {
+            } else if (acceptToken(scanner, TOKEN_SLASH)) {
                 type = AST_DIVIDE;
-            } else if (accept(scanner, TOKEN_PERCENT)) {
+            } else if (acceptToken(scanner, TOKEN_PERCENT)) {
                 type = AST_REMAINDER;
             }
             Ast* next = parseExpressionLevelUnary(scanner, error_context);
@@ -700,11 +700,11 @@ static Ast* parseExpressionLevelMultiplicative(Scanner* scanner, ErrorContext* e
 static Ast* parseExpressionLevelAdditive(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelMultiplicative(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (test(scanner, 0, TOKEN_PLUS) || test(scanner, 0, TOKEN_MINUS)) {
+        while (testForToken(scanner, 0, TOKEN_PLUS) || testForToken(scanner, 0, TOKEN_MINUS)) {
             AstType type = AST_NONE;
-            if (accept(scanner, TOKEN_PLUS)) {
+            if (acceptToken(scanner, TOKEN_PLUS)) {
                 type = AST_ADD;
-            } else if (accept(scanner, TOKEN_MINUS)) {
+            } else if (acceptToken(scanner, TOKEN_MINUS)) {
                 type = AST_SUBTRACT;
             }
             Ast* next = parseExpressionLevelMultiplicative(scanner, error_context);
@@ -734,11 +734,11 @@ static Ast* parseExpressionLevelAdditive(Scanner* scanner, ErrorContext* error_c
 static Ast* parseExpressionLevelShift(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelAdditive(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (test(scanner, 0, TOKEN_DBL_LES) || test(scanner, 0, TOKEN_DBL_GTR)) {
+        while (testForToken(scanner, 0, TOKEN_DBL_LES) || testForToken(scanner, 0, TOKEN_DBL_GTR)) {
             AstType type = AST_NONE;
-            if (accept(scanner, TOKEN_DBL_LES)) {
+            if (acceptToken(scanner, TOKEN_DBL_LES)) {
                 type = AST_SHIFT_LEFT;
-            } else if (accept(scanner, TOKEN_DBL_GTR)) {
+            } else if (acceptToken(scanner, TOKEN_DBL_GTR)) {
                 type = AST_SHIFT_RIGHT;
             }
             Ast* next = parseExpressionLevelAdditive(scanner, error_context);
@@ -768,7 +768,7 @@ static Ast* parseExpressionLevelShift(Scanner* scanner, ErrorContext* error_cont
 static Ast* parseExpressionLevelAnd(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelShift(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (accept(scanner, TOKEN_AND)) {
+        while (acceptToken(scanner, TOKEN_AND)) {
             Ast* next = parseExpressionLevelShift(scanner, error_context);
             if (next == NULL || next == PARSE_ERROR) {
                 if (next == NULL) {
@@ -796,7 +796,7 @@ static Ast* parseExpressionLevelAnd(Scanner* scanner, ErrorContext* error_contex
 static Ast* parseExpressionLevelXor(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelAnd(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (accept(scanner, TOKEN_CARET)) {
+        while (acceptToken(scanner, TOKEN_CARET)) {
             Ast* next = parseExpressionLevelAnd(scanner, error_context);
             if (next == NULL || next == PARSE_ERROR) {
                 if (next == NULL) {
@@ -824,7 +824,7 @@ static Ast* parseExpressionLevelXor(Scanner* scanner, ErrorContext* error_contex
 static Ast* parseExpressionLevelOr(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelXor(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (accept(scanner, TOKEN_PIPE)) {
+        while (acceptToken(scanner, TOKEN_PIPE)) {
             Ast* next = parseExpressionLevelXor(scanner, error_context);
             if (next == NULL || next == PARSE_ERROR) {
                 if (next == NULL) {
@@ -852,19 +852,19 @@ static Ast* parseExpressionLevelOr(Scanner* scanner, ErrorContext* error_context
 static Ast* parseExpressionLevelRelational(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelOr(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (test(scanner, 0, TOKEN_GTR) || test(scanner, 0, TOKEN_LES) || test(scanner, 0, TOKEN_GTR_EQU) || test(scanner, 0, TOKEN_LES_EQU) || test(scanner, 0, TOKEN_DBL_EQU) || test(scanner, 0, TOKEN_EXCL_EQU)) {
+        while (testForToken(scanner, 0, TOKEN_GTR) || testForToken(scanner, 0, TOKEN_LES) || testForToken(scanner, 0, TOKEN_GTR_EQU) || testForToken(scanner, 0, TOKEN_LES_EQU) || testForToken(scanner, 0, TOKEN_DBL_EQU) || testForToken(scanner, 0, TOKEN_EXCL_EQU)) {
             AstType type = AST_NONE;
-            if (accept(scanner, TOKEN_GTR)) {
+            if (acceptToken(scanner, TOKEN_GTR)) {
                 type = AST_GREATER;
-            } else if (accept(scanner, TOKEN_LES)) {
+            } else if (acceptToken(scanner, TOKEN_LES)) {
                 type = AST_LESS;
-            } else if (accept(scanner, TOKEN_GTR_EQU)) {
+            } else if (acceptToken(scanner, TOKEN_GTR_EQU)) {
                 type = AST_GREATER_EQUAL;
-            } else if (accept(scanner, TOKEN_LES_EQU)) {
+            } else if (acceptToken(scanner, TOKEN_LES_EQU)) {
                 type = AST_LESS_EQUAL;
-            } else if (accept(scanner, TOKEN_DBL_EQU)) {
+            } else if (acceptToken(scanner, TOKEN_DBL_EQU)) {
                 type = AST_EQUAL;
-            } else if (accept(scanner, TOKEN_EXCL_EQU)) {
+            } else if (acceptToken(scanner, TOKEN_EXCL_EQU)) {
                 type = AST_UNEQUAL;
             }
             Ast* next = parseExpressionLevelOr(scanner, error_context);
@@ -894,7 +894,7 @@ static Ast* parseExpressionLevelRelational(Scanner* scanner, ErrorContext* error
 static Ast* parseExpressionLevelLazyAnd(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelRelational(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (accept(scanner, TOKEN_DBL_AND)) {
+        while (acceptToken(scanner, TOKEN_DBL_AND)) {
             Ast* next = parseExpressionLevelRelational(scanner, error_context);
             if (next == NULL || next == PARSE_ERROR) {
                 if (next == NULL) {
@@ -922,7 +922,7 @@ static Ast* parseExpressionLevelLazyAnd(Scanner* scanner, ErrorContext* error_co
 static Ast* parseExpressionLevelLazyOr(Scanner* scanner, ErrorContext* error_context) {
     Ast* ret = parseExpressionLevelLazyAnd(scanner, error_context);
     if (ret != NULL && ret != PARSE_ERROR) {
-        while (accept(scanner, TOKEN_DBL_PIPE)) {
+        while (acceptToken(scanner, TOKEN_DBL_PIPE)) {
             Ast* next = parseExpressionLevelLazyAnd(scanner, error_context);
             if (next == NULL || next == PARSE_ERROR) {
                 if (next == NULL) {
@@ -949,8 +949,8 @@ static Ast* parseExpressionLevelLazyOr(Scanner* scanner, ErrorContext* error_con
 static Ast* parseExpression(Scanner* scanner, ErrorContext* error_context) { return parseExpressionLevelLazyOr(scanner, error_context); }
 
 static Ast* parseGlobalFunction(Scanner* scanner, ErrorContext* error_context) {
-    if ((test(scanner, 0, TOKEN_IDENTIFIER) && test(scanner, 1, TOKEN_ROUND_OPEN)) ||
-        (test(scanner, 0, TOKEN_EXTERN) && test(scanner, 1, TOKEN_IDENTIFIER) && test(scanner, 2, TOKEN_ROUND_OPEN))) {
+    if ((testForToken(scanner, 0, TOKEN_IDENTIFIER) && testForToken(scanner, 1, TOKEN_ROUND_OPEN)) ||
+        (testForToken(scanner, 0, TOKEN_EXTERN) && testForToken(scanner, 1, TOKEN_IDENTIFIER) && testForToken(scanner, 2, TOKEN_ROUND_OPEN))) {
         Token first;
         Token last;
         Ast* return_type = NULL;
@@ -958,17 +958,17 @@ static Ast* parseGlobalFunction(Scanner* scanner, ErrorContext* error_context) {
         AstParameterDefinition* parameter;
         ArrayList parameters;
         initArrayList(&parameters);
-        bool is_extern = consume(scanner, TOKEN_EXTERN, &first);
+        bool is_extern = consumeToken(scanner, TOKEN_EXTERN, &first);
         Token name;
-        consume(scanner, TOKEN_IDENTIFIER, &name);
-        accept(scanner, TOKEN_ROUND_OPEN);
-        while ((parameters.count == 0 || accept(scanner, TOKEN_COMMA)) && (parameter = parseParameterDefinition(scanner, error_context)) != NULL) {
+        consumeToken(scanner, TOKEN_IDENTIFIER, &name);
+        acceptToken(scanner, TOKEN_ROUND_OPEN);
+        while ((parameters.count == 0 || acceptToken(scanner, TOKEN_COMMA)) && (parameter = parseParameterDefinition(scanner, error_context)) != NULL) {
             if (parameter == PARSE_ERROR) {
                 goto failed;
             }
             pushToArrayList(&parameters, (void*)parameter);
         }
-        bool is_vararg = accept(scanner, TOKEN_DBL_POINT);
+        bool is_vararg = acceptToken(scanner, TOKEN_DBL_POINT);
         if (!expectToken(scanner, TOKEN_ROUND_CLOSE, error_context, NULL)) {
             goto failed;
         }
@@ -1018,13 +1018,13 @@ static Ast* parseGlobalFunction(Scanner* scanner, ErrorContext* error_context) {
 }
 
 static Ast* parseGlobalVariable(Scanner* scanner, ErrorContext* error_context) {
-    if(test(scanner, 0, TOKEN_IDENTIFIER) || (test(scanner, 0, TOKEN_EXTERN) && test(scanner, 1, TOKEN_IDENTIFIER))) {
+    if(testForToken(scanner, 0, TOKEN_IDENTIFIER) || (testForToken(scanner, 0, TOKEN_EXTERN) && testForToken(scanner, 1, TOKEN_IDENTIFIER))) {
         Token first;
-        bool is_extern = consume(scanner, TOKEN_EXTERN, &first); 
+        bool is_extern = consumeToken(scanner, TOKEN_EXTERN, &first); 
         Token name;
-        consume(scanner, TOKEN_IDENTIFIER, &name);
+        consumeToken(scanner, TOKEN_IDENTIFIER, &name);
         Token error;
-        if(accept(scanner, TOKEN_COLON)) {
+        if(acceptToken(scanner, TOKEN_COLON)) {
             Ast* type = parseType(scanner, error_context);
             if(type == PARSE_ERROR || type == NULL) {
                 if(type == NULL) {
@@ -1032,7 +1032,7 @@ static Ast* parseGlobalVariable(Scanner* scanner, ErrorContext* error_context) {
                 }
                 goto failed;
             }
-            if (accept(scanner, TOKEN_EQU)) {
+            if (acceptToken(scanner, TOKEN_EQU)) {
                 if (is_extern) {
                     addError(error_context, "Extern variables can't be initialized", first.start, ERROR);
                     freeAst((Ast*)type);
@@ -1066,7 +1066,7 @@ static Ast* parseGlobalVariable(Scanner* scanner, ErrorContext* error_context) {
                 ret->initial_value = NULL;
                 return (Ast*)ret;
             }
-        } else if(consume(scanner, TOKEN_COLON_EQU, &error)) {
+        } else if(consumeToken(scanner, TOKEN_COLON_EQU, &error)) {
             if (is_extern) {
                 addError(error_context, "Extern variables can't be initialized", first.start, ERROR);
                 goto failed;
@@ -1114,7 +1114,7 @@ static AstRoot* parseRoot(Scanner* scanner, ErrorContext* error_context) {
             goto failed;
         }
         pushToArrayList(&list, tmp);
-        while (accept(scanner, TOKEN_SEMICOLON))
+        while (acceptToken(scanner, TOKEN_SEMICOLON))
             ;
     }
     AstRoot* ret = (AstRoot*)malloc(sizeof(AstRoot));
