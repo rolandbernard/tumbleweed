@@ -8,6 +8,9 @@ This is the source code repository for the Tumbleweed compiler.
 Tumbleweed is a small strongly typed programming language.
 Just like real tumbleweed this programming language is useless and unwanted. 
 
+You can try out the language in your browser:
+https://rolandbernard.github.io/tumble-playground
+
 ## Installing from source
 ```
 $ git clone https://github.com/rolandbernard/tumbleweed
