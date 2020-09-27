@@ -608,7 +608,7 @@ LLVMValueRef generateValueFloatLiteral(AstFloatLiteral* ast, Symbol* function, L
 
 LLVMValueRef generateValueStringLiteral(AstStringLiteral* ast, Symbol* function, LLVMDIBuilderRef dibuilder, LLVMBuilderRef builder, Args* args, SymbolTable* symbols, ErrorContext* error_context) {
     LLVMValueRef value = LLVMConstString(ast->string_content, strlen(ast->string_content), false);
-    LLVMValueRef global = LLVMAddGlobal(function->llvm_module, LLVMTypeOf(value), "");
+    LLVMValueRef global = LLVMAddGlobal(function->llvm_module, LLVMTypeOf(value), ".str");
     LLVMSetInitializer(global, value);
     LLVMSetGlobalConstant(global, true);
     LLVMSetLinkage(global, LLVMPrivateLinkage);
