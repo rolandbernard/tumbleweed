@@ -117,7 +117,7 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
         File* file = &file_set->files[i];
         if (file->ast != NULL) {
             LLVMModuleRef module = generateModuleFromAst(file->ast, file, args, error_context);
-            if (file_set->file_count > 1) {
+            if (linked_module != NULL) {
                 if (LLVMLinkModules2(linked_module, module)) {
                     addErrorf(error_context, NOPOS, ERROR, "%s: Failed to link in the file", file->filename);
                 }
@@ -135,11 +135,15 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
             }
             LLVMModuleRef module;
             if (LLVMParseIRInContext(LLVMGetGlobalContext(), buffer, &module, &error_msg)) {
-                addErrorf(error_context, NOPOS, ERROR, "%s: Failed to parse bitcode", args->input_files[i]);
+                addErrorf(error_context, NOPOS, ERROR, "%s: Failed to parse ir: %s", args->input_files[i], error_msg);
                 LLVMDisposeMessage(error_msg);
             }
-            if (LLVMLinkModules2(linked_module, module)) {
-                addErrorf(error_context, NOPOS, ERROR, "%s: Failed to link in the file", args->input_files[i]);
+            if (linked_module != NULL) {
+                if (LLVMLinkModules2(linked_module, module)) {
+                    addErrorf(error_context, NOPOS, ERROR, "%s: Failed to link in the file", args->input_files[i]);
+                }
+            } else {
+                linked_module = module;
             }
         } else if (testExt(args->input_files[i], ".bc")) {
             LLVMMemoryBufferRef buffer;
@@ -152,8 +156,12 @@ int compile(Args* args, ErrorContext* error_context, FileSet* file_set) {
                 addErrorf(error_context, NOPOS, ERROR, "%s: Failed to parse bitcode: %s", args->input_files[i], error_msg);
                 LLVMDisposeMessage(error_msg);
             }
-            if (LLVMLinkModules2(linked_module, module)) {
-                addErrorf(error_context, NOPOS, ERROR, "%s: Failed to link in the file", args->input_files[i]);
+            if (linked_module != NULL) {
+                if (LLVMLinkModules2(linked_module, module)) {
+                    addErrorf(error_context, NOPOS, ERROR, "%s: Failed to link in the file", args->input_files[i]);
+                }
+            } else {
+                linked_module = module;
             }
         }
     }

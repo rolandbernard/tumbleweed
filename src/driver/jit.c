@@ -6,6 +6,8 @@
 #include <llvm-c/Support.h>
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
+#include <llvm-c/Transforms/PassManagerBuilder.h>
+#include <llvm-c/Transforms/Scalar.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,7 +81,24 @@ int runModuleInJIT(LLVMModuleRef module, Args* args, ErrorContext* error_context
                     .error_pipe = err_pipe[1],
                 };
                 LLVMOrcModuleHandle module_handle;
-                LLVMErrorRef error = LLVMOrcAddLazilyCompiledIR(jit_stack, &module_handle, module, symbolResolver, (void*)&context);
+                LLVMSetTarget(module, triple);
+                LLVMTargetDataRef data_layout = LLVMCreateTargetDataLayout(machine);
+                LLVMSetModuleDataLayout(module, data_layout);
+                LLVMPassManagerRef module_pass_manager = LLVMCreatePassManager();
+                LLVMPassManagerBuilderRef pass_manager_builder = LLVMPassManagerBuilderCreate();
+                LLVMPassManagerBuilderSetOptLevel(pass_manager_builder, args->speed_opt);
+                LLVMPassManagerBuilderSetSizeLevel(pass_manager_builder, args->size_opt);
+                if (args->size_opt == 0 && args->speed_opt > 1) {
+                    LLVMPassManagerBuilderUseInlinerWithThreshold(pass_manager_builder, args->speed_opt * 100);
+                }
+                LLVMAddAnalysisPasses(machine, module_pass_manager);
+                LLVMAddVerifierPass(module_pass_manager);
+                LLVMAddCFGSimplificationPass(module_pass_manager);
+                LLVMPassManagerBuilderPopulateModulePassManager(pass_manager_builder, module_pass_manager);
+                if (!args->compiler_debug) {
+                    LLVMRunPassManager(module_pass_manager, module);
+                }
+                LLVMErrorRef error = LLVMOrcAddEagerlyCompiledIR(jit_stack, &module_handle, module, symbolResolver, (void*)&context);
                 if (error) {
                     char* error_msg = LLVMGetErrorMessage(error);
                     addError(error_context, error_msg, NOPOS, ERROR);
@@ -97,6 +116,9 @@ int runModuleInJIT(LLVMModuleRef module, Args* args, ErrorContext* error_context
                         ret = ((MainFunction)main_address)(args->argc, args->argv, args->env);
                     }
                 }
+                LLVMPassManagerBuilderDispose(pass_manager_builder);
+                LLVMDisposePassManager(module_pass_manager);
+                LLVMDisposeTargetData(data_layout);
                 LLVMOrcDisposeInstance(jit_stack);
                 LLVMDisposeTargetMachine(machine);
                 LLVMDisposeMessage(host_cpu);
