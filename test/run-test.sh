@@ -33,6 +33,40 @@ function runTest {
             failed_count=$(expr $failed_count + 1)
         fi
         rm /tmp/tumble-test.tmp.out &> /dev/null
+        for i in $(seq 1 $2)
+        do
+            echo -n "  "
+        done
+        if timeout 0.5s $COMPILER -e jit $1 &> /dev/null
+        then
+            echo -e "\e[32mPassed\e[m test '$3' (JIT)"
+            passed_count=$(expr $passed_count + 1)
+        else
+            if [ $? == 124 ]
+            then
+                echo -e "\e[31mFailed\e[m test '$3' (JIT) with timeout"
+            else
+                echo -e "\e[31mFailed\e[m test '$3' (JIT) at runtime ($?)"
+            fi
+            failed_count=$(expr $failed_count + 1)
+        fi
+        for i in $(seq 1 $2)
+        do
+            echo -n "  "
+        done
+        if timeout 0.5s $COMPILER -e jit $1 --force-interpreter &> /dev/null
+        then
+            echo -e "\e[32mPassed\e[m test '$3' (Interpreter)"
+            passed_count=$(expr $passed_count + 1)
+        else
+            if [ $? == 124 ]
+            then
+                echo -e "\e[31mFailed\e[m test '$3' (Interpreter) with timeout"
+            else
+                echo -e "\e[31mFailed\e[m test '$3' (Interpreter) at runtime ($?)"
+            fi
+            failed_count=$(expr $failed_count + 1)
+        fi
     fi
 }
 
