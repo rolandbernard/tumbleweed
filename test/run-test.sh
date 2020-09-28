@@ -37,7 +37,7 @@ function runTest {
         do
             echo -n "  "
         done
-        if timeout 0.5s $COMPILER -e jit $1 &> /dev/null
+        if timeout 5s $COMPILER -e jit $1 &> /dev/null
         then
             echo -e "\e[32mPassed\e[m test '$3' (JIT)"
             passed_count=$(expr $passed_count + 1)
@@ -54,7 +54,7 @@ function runTest {
         do
             echo -n "  "
         done
-        if timeout 0.5s $COMPILER -e jit $1 --force-interpreter &> /dev/null
+        if timeout 10s $COMPILER -e jit $1 --force-interpreter &> /dev/null
         then
             echo -e "\e[32mPassed\e[m test '$3' (Interpreter)"
             passed_count=$(expr $passed_count + 1)
