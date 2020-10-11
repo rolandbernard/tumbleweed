@@ -8,7 +8,9 @@
 LLVMTypeRef generateTypeBase(AstVariableAccess* ast, Args* args, ErrorContext* error_context) {
     if(strcmp(ast->name, "int") == 0) {
         return LLVMIntType(64);
-    } else if(strcmp(ast->name, "float") == 0 || strcmp(ast->name, "f64") == 0) {
+    } else if(strcmp(ast->name, "bool") == 0) {
+        return LLVMIntType(1);
+    } else if(strcmp(ast->name, "real") == 0 || strcmp(ast->name, "f64") == 0) {
         return LLVMDoubleType();
     } else if(strcmp(ast->name, "f32") == 0) {
         return LLVMFloatType();
