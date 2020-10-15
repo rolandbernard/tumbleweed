@@ -230,8 +230,7 @@ int determineToken(const char* from, TokenType* type) {
                 len++;
             }
             *type = TOKEN_INT_CONST;
-        }
-        if (from[1] == 'h' || from[1] == 'x') {
+        } else if (from[1] == 'h' || from[1] == 'x') {
             len = 2;
             while (isHexChar(from[len]) || from[len] == '_') {
                 len++;
