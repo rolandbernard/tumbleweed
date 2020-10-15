@@ -640,9 +640,9 @@ static Ast* parseExpressionLevelUnary(Scanner* scanner, ErrorContext* error_cont
         } else if(number != PARSE_ERROR) {
             if(expectToken(scanner, TOKEN_SQUARE_CLOSE, error_context, NULL)) {
                 Ast* value = parseExpressionLevelUnary(scanner, error_context);
-                if (number == NULL) {
+                if (value == NULL) {
                     addError(error_context, "Expected an expression", getCurrentScannerPosition(scanner), ERROR);
-                } else if (number != PARSE_ERROR) {
+                } else if (value != PARSE_ERROR) {
                     AstBinaryOperation* ret = (AstBinaryOperation*)malloc(sizeof(AstBinaryOperation));
                     ret->type = AST_ARRAY;
                     ret->start = first.start;
