@@ -37,7 +37,7 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	
 .PHONY: check
 check: all
-	./test/run-test.sh ./test/tests/
+	bash ./test/run-test.sh ./test/tests/
 	
 .PHONY: clean
 clean:
