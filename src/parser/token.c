@@ -6,29 +6,11 @@
 #include "parser/token.h"
 
 static const char* tokenTypeToString[] = {
-    [TOKEN_FN] = "fn",
     [TOKEN_IF] = "if",
-    [TOKEN_IN] = "in",
-    [TOKEN_AS] = "as",
     [TOKEN_FOR] = "for",
-    [TOKEN_GOTO] = "goto",
     [TOKEN_ELSE] = "else",
-    [TOKEN_FROM] = "from",
-    [TOKEN_CASE] = "case",
-    [TOKEN_TRUE] = "true",
-    [TOKEN_FALSE] = "false",
-    [TOKEN_CONST] = "const",
-    [TOKEN_USING] = "using",
-    [TOKEN_BREAK] = "break",
-    [TOKEN_SIMPLE] = "simple",
-    [TOKEN_SWITCH] = "switch",
     [TOKEN_EXTERN] = "extern",
     [TOKEN_RETURN] = "return",
-    [TOKEN_IMPORT] = "import",
-    [TOKEN_EXPORT] = "export",
-    [TOKEN_TYPEOF] = "typeof",
-    [TOKEN_VOLATILE] = "volatile",
-    [TOKEN_CONTINUE] = "continue",
 
     [TOKEN_AT] = "@",
     [TOKEN_DOLLAR] = "$",
@@ -110,22 +92,10 @@ int determineToken(const char* from, TokenType* type) {
         }
         switch (len) {
         case 2:
-            // if (strncmp(tokenTypeToString[TOKEN_FN], from, len) == 0) {
-            //     *type = TOKEN_FN;
-            //     return len;
-            // }
             if (strncmp(tokenTypeToString[TOKEN_IF], from, len) == 0) {
                 *type = TOKEN_IF;
                 return len;
             }
-            // if (strncmp(tokenTypeToString[TOKEN_IN], from, len) == 0) {
-            //     *type = TOKEN_IN;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_AS], from, len) == 0) {
-            //     *type = TOKEN_AS;
-            //     return len;
-            // }
             break;
         case 3:
             if (strncmp(tokenTypeToString[TOKEN_FOR], from, len) == 0) {
@@ -134,54 +104,12 @@ int determineToken(const char* from, TokenType* type) {
             }
             break;
         case 4:
-            // if (strncmp(tokenTypeToString[TOKEN_GOTO], from, len) == 0) {
-            //     *type = TOKEN_GOTO;
-            //     return len;
-            // }
             if (strncmp(tokenTypeToString[TOKEN_ELSE], from, len) == 0) {
                 *type = TOKEN_ELSE;
                 return len;
             }
-            // if (strncmp(tokenTypeToString[TOKEN_FROM], from, len) == 0) {
-            //     *type = TOKEN_FROM;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_CASE], from, len) == 0) {
-            //     *type = TOKEN_CASE;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_TRUE], from, len) == 0) {
-            //     *type = TOKEN_TRUE;
-            //     return len;
-            // }
             break;
-        // case 5:
-            // if (strncmp(tokenTypeToString[TOKEN_FALSE], from, len) == 0) {
-            //     *type = TOKEN_FALSE;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_CONST], from, len) == 0) {
-            //     *type = TOKEN_CONST;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_USING], from, len) == 0) {
-            //     *type = TOKEN_USING;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_BREAK], from, len) == 0) {
-            //     *type = TOKEN_BREAK;
-            //     return len;
-            // }
-            // break;
         case 6:
-            // if (strncmp(tokenTypeToString[TOKEN_SIMPLE], from, len) == 0) {
-            //     *type = TOKEN_SIMPLE;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_SWITCH], from, len) == 0) {
-            //     *type = TOKEN_SWITCH;
-            //     return len;
-            // }
             if (strncmp(tokenTypeToString[TOKEN_EXTERN], from, len) == 0) {
                 *type = TOKEN_EXTERN;
                 return len;
@@ -190,28 +118,9 @@ int determineToken(const char* from, TokenType* type) {
                 *type = TOKEN_RETURN;
                 return len;
             }
-            // if (strncmp(tokenTypeToString[TOKEN_IMPORT], from, len) == 0) {
-            //     *type = TOKEN_IMPORT;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_EXPORT], from, len) == 0) {
-            //     *type = TOKEN_EXPORT;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_TYPEOF], from, len) == 0) {
-            //     *type = TOKEN_TYPEOF;
-            //     return len;
-            // }
             break;
-        // case 8:
-            // if (strncmp(tokenTypeToString[TOKEN_VOLATILE], from, len) == 0) {
-            //     *type = TOKEN_VOLATILE;
-            //     return len;
-            // }
-            // if (strncmp(tokenTypeToString[TOKEN_CONTINUE], from, len) == 0) {
-            //     *type = TOKEN_CONTINUE;
-            //     return len;
-            // }
+        default:
+            break;
         }
         *type = TOKEN_IDENTIFIER;
         return len;
