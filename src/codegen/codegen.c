@@ -16,7 +16,7 @@ LLVMModuleRef generateModuleFromAst(Ast* ast, File* file, Args* args, ErrorConte
         if(args->debug) {
             dibuilder = LLVMCreateDIBuilder(module);
             file_meta = LLVMDIBuilderCreateFile(dibuilder, file->path + file->directory_str_len + 1, file->file_str_len, file->path, file->directory_str_len);
-            LLVMDIBuilderCreateCompileUnit(dibuilder, LLVMDWARFSourceLanguageC, file_meta, COMPILER_NAME, strlen(COMPILER_NAME), args->size_opt != 0 || args->speed_opt != 0, NULL, 0, 0, NULL, 0, LLVMDWARFEmissionFull, 0, false, false);
+            LLVMDIBuilderCreateCompileUnit(dibuilder, LLVMDWARFSourceLanguageC, file_meta, COMPILER_NAME, strlen(COMPILER_NAME), args->size_opt != 0 || args->speed_opt != 0, NULL, 0, 0, NULL, 0, LLVMDWARFEmissionFull, 0, false, false, NULL, 0, NULL, 0);
             LLVMAddModuleFlag(module, LLVMModuleFlagBehaviorWarning, "Debug Info Version", 18, LLVMValueAsMetadata(LLVMConstInt(LLVMIntType(32), LLVMDebugMetadataVersion(), 0)));
         }
         SymbolTable symbols;
