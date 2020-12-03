@@ -8,29 +8,11 @@ typedef enum {
 
     TOKEN_KEYWORD_START,
 
-    TOKEN_FN,       // fn
     TOKEN_IF,       // if
-    TOKEN_IN,       // in
-    TOKEN_AS,       // as
     TOKEN_FOR,      // for
     TOKEN_ELSE,     // else
-    TOKEN_GOTO,     // goto
-    TOKEN_FROM,     // from
-    TOKEN_CASE,     // case
-    TOKEN_TRUE,     // true
-    TOKEN_FALSE,    // false
-    TOKEN_CONST,    // const
-    TOKEN_USING,    // using
-    TOKEN_BREAK,    // break
-    TOKEN_SWITCH,   // switch
-    TOKEN_SIMPLE,   // simple
     TOKEN_EXTERN,   // extern
     TOKEN_RETURN,   // return
-    TOKEN_IMPORT,   // import
-    TOKEN_EXPORT,   // export
-    TOKEN_TYPEOF,   // typeof
-    TOKEN_VOLATILE, // volatile
-    TOKEN_CONTINUE, // continue
 
     TOKEN_KEYWORD_END,
     TOKEN_OPERATOR_START,
