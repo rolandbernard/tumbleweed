@@ -9,7 +9,7 @@ Tumbleweed is a small strongly typed programming language.
 Just like real tumbleweed this programming language is useless and unwanted. 
 
 You can try out the language in your browser:
-https://rolandbernard.github.io/tumble-playground
+https://tumbleweed.rolandb.com/
 
 ## Installing from source
 ```
